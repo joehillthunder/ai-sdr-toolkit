@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Wizard — ai-sdr-toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F8F5;
+    --surface: #FFFFFF;
+    --surface-2: #F0F3EF;
+    --ink: #16211D;
+    --ink-soft: #4B584F;
+    --line: #DEE6DB;
+    --primary: #0E7C66;
+    --primary-strong: #0B6350;
+    --primary-bg: #E3F3EE;
+    --accent: #E0692C;
+    --accent-strong: #C4551E;
+    --accent-bg: #FBE7DA;
+    --good: #2E7D5B; --good-bg: #E1F0E8;
+    --watch: #9A7A1F; --watch-bg: #F5EEDA;
+    --muted: #98A196; --muted-bg: #EEF1EC;
+    --danger: #B3432F; --danger-bg: #FBE6E1;
+    --shadow: 0 1px 2px rgba(15,30,20,.05), 0 10px 28px rgba(15,30,20,.06);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101511; --surface: #171D18; --surface-2: #1D2420;
+      --ink: #EEF3EC; --ink-soft: #B9C5B7; --line: #2B342C;
+      --primary: #3FBFA0; --primary-strong: #62D3B6; --primary-bg: rgba(63,191,160,.14);
+      --accent: #F0895A; --accent-strong: #F6A87F; --accent-bg: rgba(240,137,90,.14);
+      --good: #63C79A; --good-bg: rgba(99,199,154,.14);
+      --watch: #E0C367; --watch-bg: rgba(224,195,103,.14);
+      --muted: #7C877D; --muted-bg: rgba(124,135,125,.14);
+      --danger: #E38271; --danger-bg: rgba(227,130,113,.14);
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101511; --surface: #171D18; --surface-2: #1D2420;
+    --ink: #EEF3EC; --ink-soft: #B9C5B7; --line: #2B342C;
+    --primary: #3FBFA0; --primary-strong: #62D3B6; --primary-bg: rgba(63,191,160,.14);
+    --accent: #F0895A; --accent-strong: #F6A87F; --accent-bg: rgba(240,137,90,.14);
+    --good: #63C79A; --good-bg: rgba(99,199,154,.14);
+    --watch: #E0C367; --watch-bg: rgba(224,195,103,.14);
+    --muted: #7C877D; --muted-bg: rgba(124,135,125,.14);
+    --danger: #E38271; --danger-bg: rgba(227,130,113,.14);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Plus Jakarta Sans", -apple-system, "Segoe UI", sans-serif;
+    font-size: 15.5px; line-height: 1.5;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  h1,h2,h3 { font-family: "Plus Jakarta Sans"; font-weight: 800; margin: 0; text-wrap: balance; }
+  a { color: var(--primary-strong); }
+  button { font-family: inherit; }
+  input, textarea, select {
+    font-family: inherit; font-size: 14.5px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 11px; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus, button:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 1px;
+  }
+  label { font-size: 13px; font-weight: 600; color: var(--ink-soft); display: block; margin-bottom: 5px; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .shell { max-width: 900px; margin: 0 auto; padding: 32px 20px 100px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+  header.top .brand { font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  header.top .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); }
+  header.top a.repo { font-size: 13px; color: var(--ink-soft); text-decoration: none; }
+
+  .stepper { display: flex; gap: 8px; margin-bottom: 32px; }
+  .stepper .step {
+    flex: 1; padding: 12px 14px; border-radius: 10px; background: var(--surface);
+    border: 1px solid var(--line); opacity: .55; transition: opacity .15s;
+  }
+  .stepper .step.active { opacity: 1; border-color: var(--primary); box-shadow: var(--shadow); }
+  .stepper .step.done { opacity: 1; }
+  .stepper .num { font-family: "IBM Plex Mono"; font-size: 11px; color: var(--primary-strong); }
+  .stepper .label { font-weight: 700; font-size: 13.5px; margin-top: 2px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 22px 22px 20px; margin-bottom: 18px;
+  }
+  .card h2 { font-size: 19px; margin-bottom: 4px; }
+  .card .hint { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .option-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .option {
+    border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px;
+    padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--ink-soft);
+  }
+  .option.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; margin-top: 10px; }
+  .status-pill.ok { background: var(--good-bg); color: var(--good); }
+  .status-pill.err { background: var(--danger-bg); color: var(--danger); }
+  .status-pill.pending { background: var(--muted-bg); color: var(--ink-soft); }
+
+  .btn {
+    border: none; border-radius: 9px; padding: 11px 20px; font-weight: 700; font-size: 14.5px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-secondary { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost { background: transparent; color: var(--ink-soft); }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; }
+
+  .chip-editor { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; min-height: 42px; }
+  .chip { background: var(--primary-bg); color: var(--primary-strong); border-radius: 999px; padding: 4px 6px 4px 10px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 2px; }
+  .chip-add { border: none; background: transparent; font-size: 13px; color: var(--ink-soft); padding: 4px; }
+  .icp-group { margin-bottom: 16px; }
+  .icp-group > label { margin-bottom: 6px; }
+
+  .summary-bar { display: flex; gap: 22px; flex-wrap: wrap; padding: 14px 18px; background: var(--surface-2); border-radius: var(--radius); margin-bottom: 18px; }
+  .summary-bar .stat .n { font-family: "IBM Plex Mono"; font-size: 20px; font-weight: 600; }
+  .summary-bar .stat .l { font-size: 12px; color: var(--ink-soft); }
+  .sample-note { background: var(--watch-bg); color: var(--watch); border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 18px; }
+
+  .lead {
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .lead-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; }
+  .lead-head .score { font-family: "IBM Plex Mono"; font-weight: 600; font-size: 15px; width: 48px; }
+  .lead-head .name { font-weight: 700; flex: 1; min-width: 0; }
+  .lead-head .name small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 12px; }
+  .verdict { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; font-family: "IBM Plex Mono"; text-transform: uppercase; letter-spacing: .02em; }
+  .verdict.qualified { background: var(--good-bg); color: var(--good); }
+  .verdict.nurture { background: var(--watch-bg); color: var(--watch); }
+  .verdict.below_threshold { background: var(--muted-bg); color: var(--ink-soft); }
+  .caret { transition: transform .15s; color: var(--ink-soft); }
+  .lead.open .caret { transform: rotate(90deg); }
+  .lead-body { display: none; padding: 0 18px 18px; border-top: 1px solid var(--line); }
+  .lead.open .lead-body { display: block; }
+
+  .signal-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .signal-tag { font-size: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .dossier { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; margin: 12px 0; }
+  .dossier b { color: var(--primary-strong); }
+
+  .touch { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .touch-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .touch-head .ch { font-family: "IBM Plex Mono"; font-size: 11.5px; color: var(--primary-strong); text-transform: uppercase; }
+  .touch input, .touch textarea { margin-bottom: 6px; }
+  .touch textarea { min-height: 56px; }
+
+  .export-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+  #export-status { font-size: 13px; color: var(--ink-soft); }
+
+  .loading { text-align: center; padding: 60px 0; color: var(--ink-soft); }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); margin: 0 auto 14px; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } .panel.active { animation: none; } }
+
+  .file-drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
+  .file-drop.has-file { border-color: var(--primary); color: var(--primary-strong); background: var(--primary-bg); }
+
+  .research-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .research-row:last-child { border-bottom: none; }
+  .research-row input[type="checkbox"] { width: auto; margin-top: 3px; }
+  .research-row .rname { font-weight: 700; }
+  .research-row .rreason { color: var(--ink-soft); display: block; }
+  .badge-unverified { font-family: "IBM Plex Mono"; font-size: 10px; text-transform: uppercase; background: var(--watch-bg); color: var(--watch); padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+
+  .add-touch-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .add-touch-row button { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px dashed var(--line); background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .add-touch-row button:hover { border-color: var(--primary); color: var(--primary-strong); }
+  .add-touch-row button[disabled] { opacity: .5; cursor: wait; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><span class="dot"></span> ai-sdr-toolkit — Lead Wizard</div>
+    <a class="repo" href="https://github.com/joehillthunder/ai-sdr-toolkit" target="_blank">View source ↗</a>
+  </header>
+
+  <div class="stepper">
+    <div class="step active" data-step="1"><div class="num">01</div><div class="label">Connect your tools</div></div>
+    <div class="step" data-step="2"><div class="num">02</div><div class="label">Describe your business</div></div>
+    <div class="step" data-step="3"><div class="num">03</div><div class="label">Leads &amp; outreach</div></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <section class="panel active" data-panel="1">
+    <div class="grid2">
+      <div class="card">
+        <h2>Your AI</h2>
+        <p class="hint">Powers research, qualification, and drafted outreach. Pick one.</p>
+        <div class="option-row" id="ai-options">
+          <div class="option selected" data-provider="mock">Just show me a demo</div>
+          <div class="option" data-provider="anthropic">Claude (Anthropic)</div>
+          <div class="option" data-provider="openai">OpenAI</div>
+          <div class="option" data-provider="open-source">Open-source / local</div>
+        </div>
+        <div id="ai-fields"></div>
+        <button class="btn btn-secondary" id="test-ai" style="margin-top:10px">Test connection</button>
+        <div id="ai-status"></div>
+      </div>
+
+      <div class="card">
+        <h2>Your CRM</h2>
+        <p class="hint">Where the queue ends up. You can change this later.</p>
+        <div class="option-row" id="crm-options">
+          <div class="option selected" data-provider="csv">CSV export only</div>
+          <div class="option" data-provider="builtin">Built-in CRM (no setup)</div>
+          <div class="option" data-provider="hubspot">HubSpot</div>
+          <div class="option" data-provider="salesforce">Salesforce</div>
+          <div class="option" data-provider="zoho">Zoho</div>
+        </div>
+        <div id="crm-fields"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <span></span>
+      <button class="btn btn-primary" onclick="goStep(2)">Continue →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" data-panel="2">
+    <div class="card">
+      <h2>Tell us about your business</h2>
+      <p class="hint">We'll turn this into targeting criteria you can review and tweak before anything runs.</p>
+      <div class="field">
+        <label>Company name</label>
+        <input id="company-name" placeholder="e.g. Riverside Dental Group">
+      </div>
+      <div class="field">
+        <label>Your website (one URL per line — your homepage is enough, more is better)</label>
+        <textarea id="website-urls" placeholder="https://www.yourcompany.com&#10;https://www.yourcompany.com/about"></textarea>
+      </div>
+      <div class="field">
+        <label>Describe your ideal customer, in your own words</label>
+        <textarea id="ideal-customer" placeholder="e.g. Mid-size dental practices in Texas with 2+ locations that are actively hiring front-desk or hygiene staff"></textarea>
+      </div>
+      <div class="field">
+        <label>Optional: a list of target accounts (CSV)</label>
+        <div class="file-drop" id="csv-drop" onclick="document.getElementById('csv-input').click()">
+          Click to upload a CSV — columns: company_name, domain, industry, employee_count, description (optional: contact_name, contact_title, contact_email, contact_twitter, contact_instagram)<br>
+          <small>Skip this and we'll run the wizard on a small bundled sample list instead, so you can see it work end to end.</small>
+        </div>
+        <input type="file" id="csv-input" accept=".csv" style="display:none">
+      </div>
+      <div class="field">
+        <label>Optional: find missing emails automatically (Hunter.io)</label>
+        <input id="hunter-key" type="password" placeholder="Hunter.io API key">
+      </div>
+      <button class="btn btn-primary" id="build-icp-btn" onclick="buildICP()">Generate targeting criteria</button>
+    </div>
+
+    <div class="card" id="icp-card" style="display:none">
+      <h2>Your targeting criteria</h2>
+      <p class="hint">Generated from your site + description — click any tag to remove it, or add your own.</p>
+
+      <div class="grid2">
+        <div class="field"><label>Min. employees</label><input type="number" id="icp-min-emp"></div>
+        <div class="field"><label>Max. employees</label><input type="number" id="icp-max-emp"></div>
+      </div>
+
+      <div class="icp-group"><label>Target industries</label><div class="chip-editor" id="chips-industries"></div></div>
+      <div class="icp-group"><label>Good-fit description keywords</label><div class="chip-editor" id="chips-description"></div></div>
+      <div class="icp-group"><label>Hiring signals to watch for</label><div class="chip-editor" id="chips-hiring"></div></div>
+      <div class="icp-group"><label>Tech-adoption signals to watch for</label><div class="chip-editor" id="chips-tech"></div></div>
+      <div class="icp-group"><label>Website-language signals to watch for</label><div class="chip-editor" id="chips-website"></div></div>
+
+      <div class="icp-group" style="border-top:1px solid var(--line); padding-top:16px; margin-top:4px">
+        <label>Optional: research more candidate companies</label>
+        <p class="hint" style="margin:0 0 10px">
+          AI-suggested from the model's training knowledge — not a live database.
+          Always verify before outreach; these get a placeholder domain until you fill in a real one.
+        </p>
+        <button class="btn btn-secondary" id="research-btn" onclick="researchLeads()">Suggest candidate companies</button>
+        <div id="research-results" style="margin-top:10px"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="generateLeads()">Generate my lead list →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" data-panel="3">
+    <div id="leads-loading" class="loading" style="display:none">
+      <div class="spinner"></div>
+      Scoring accounts and drafting outreach — this calls your AI provider once per qualifying account, so it can take a minute.
+    </div>
+    <div id="leads-content"></div>
+  </section>
+</div>
+
+<script>
+const state = {
+  llm: { provider: "mock", api_key: "", model: "", base_url: "" },
+  crm: { provider: "csv", access_token: "", instance_url: "", api_domain: "", db_path: "" },
+  icp: null,
+  accountsCsvText: "",
+  manualCompanies: [],   // AI-researched picks the user chose to include
+  hunterApiKey: "",
+  runId: null,
+  packages: [],
+  edits: {},
+  extraTouches: {},      // contact_id -> [touch, ...] drafted after generation
+};
+
+function goStep(n) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.dataset.panel == n));
+  document.querySelectorAll(".stepper .step").forEach(s => {
+    const sn = Number(s.dataset.step);
+    s.classList.toggle("active", sn === n);
+    s.classList.toggle("done", sn < n);
+  });
+}
+
+// ---------- option pickers ----------
+function wireOptions(containerId, target, onChange) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll(".option").forEach(opt => {
+    opt.addEventListener("click", () => {
+      container.querySelectorAll(".option").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      target.provider = opt.dataset.provider;
+      onChange();
+    });
+  });
+}
+
+function renderAIFields() {
+  const el = document.getElementById("ai-fields");
+  const p = state.llm.provider;
+  let html = "";
+  if (p === "mock") {
+    html = `<p class="hint" style="margin-top:6px">No key needed — dossiers and sequences will be clearly-labeled placeholder text so you can try the whole flow.</p>`;
+  } else {
+    if (p === "anthropic") html += field("ai-model", "Model (optional)", "claude-sonnet-5");
+    if (p === "openai") html += field("ai-model", "Model (optional)", "gpt-4o-mini");
+    if (p === "open-source") {
+      html += field("ai-base-url", "Server URL", "http://localhost:11434/v1");
+      html += field("ai-model", "Model name", "llama3.1");
+    }
+    if (p !== "open-source") html += field("ai-key", "API key", "sk-...", "password");
+    else html += field("ai-key", "API key (usually not needed for local servers)", "", "password");
+  }
+  el.innerHTML = html;
+  bindInput("ai-model", v => state.llm.model = v);
+  bindInput("ai-base-url", v => state.llm.base_url = v);
+  bindInput("ai-key", v => state.llm.api_key = v);
+}
+
+function renderCRMFields() {
+  const el = document.getElementById("crm-fields");
+  const p = state.crm.provider;
+  let html = "";
+  if (p === "csv") html = `<p class="hint" style="margin-top:6px">Always works. Downloads a spreadsheet of your prioritized queue.</p>`;
+  if (p === "builtin") html = `<p class="hint" style="margin-top:6px">Saves to a local SQLite file on this machine — no account needed.</p>` + field("crm-db-path", "File path (optional)", "sdr_toolkit_crm.db");
+  if (p === "hubspot") html = field("crm-token", "Private app access token", "", "password");
+  if (p === "salesforce") html = field("crm-instance", "Instance URL", "https://yourorg.my.salesforce.com") + field("crm-token", "Access token", "", "password");
+  if (p === "zoho") html = field("crm-domain", "API domain", "https://www.zohoapis.com") + field("crm-token", "Access token", "", "password");
+  el.innerHTML = html;
+  bindInput("crm-token", v => state.crm.access_token = v);
+  bindInput("crm-instance", v => state.crm.instance_url = v);
+  bindInput("crm-domain", v => state.crm.api_domain = v);
+  bindInput("crm-db-path", v => state.crm.db_path = v);
+}
+
+function field(id, label, placeholder, type) {
+  return `<div class="field"><label>${label}</label><input id="${id}" type="${type || 'text'}" placeholder="${placeholder}"></div>`;
+}
+function bindInput(id, fn) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", () => fn(el.value));
+}
+
+wireOptions("ai-options", state.llm, renderAIFields);
+wireOptions("crm-options", state.crm, renderCRMFields);
+renderAIFields();
+renderCRMFields();
+
+document.getElementById("test-ai").addEventListener("click", async () => {
+  const statusEl = document.getElementById("ai-status");
+  statusEl.innerHTML = `<span class="status-pill pending">Testing…</span>`;
+  try {
+    const res = await fetch("/api/test-llm", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({...state.llm}) });
+    const data = await res.json();
+    statusEl.innerHTML = data.ok
+      ? `<span class="status-pill ok">Connected ✓</span>`
+      : `<span class="status-pill err">${escapeHtml(data.error || "Connection failed")}</span>`;
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-pill err">${escapeHtml(String(e))}</span>`;
+  }
+});
+
+// ---------- CSV upload ----------
+document.getElementById("csv-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.accountsCsvText = reader.result;
+    const drop = document.getElementById("csv-drop");
+    drop.classList.add("has-file");
+    drop.innerHTML = `Loaded <b>${escapeHtml(file.name)}</b> — click to replace`;
+  };
+  reader.readAsText(file);
+});
+
+// ---------- ICP builder ----------
+async function buildICP() {
+  const btn = document.getElementById("build-icp-btn");
+  btn.disabled = true; btn.textContent = "Thinking…";
+  try {
+    const website_urls = document.getElementById("website-urls").value.split("\n").map(s => s.trim()).filter(Boolean);
+    const res = await fetch("/api/build-icp", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        llm: state.llm,
+        company_name: document.getElementById("company-name").value,
+        website_urls,
+        description: document.getElementById("ideal-customer").value,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    state.icp = data.icp;
+    renderICP();
+    document.getElementById("icp-card").style.display = "block";
+    document.getElementById("icp-card").scrollIntoView({behavior:"smooth"});
+  } finally {
+    btn.disabled = false; btn.textContent = "Generate targeting criteria";
+  }
+}
+
+function renderICP() {
+  document.getElementById("icp-min-emp").value = state.icp.min_employees;
+  document.getElementById("icp-max-emp").value = state.icp.max_employees;
+  document.getElementById("icp-min-emp").oninput = e => state.icp.min_employees = Number(e.target.value);
+  document.getElementById("icp-max-emp").oninput = e => state.icp.max_employees = Number(e.target.value);
+
+  renderChips("chips-industries", state.icp.target_industries);
+  renderChips("chips-description", state.icp.description_keywords);
+  renderChips("chips-hiring", state.icp.signal_keywords.hiring_surge || []);
+  renderChips("chips-tech", state.icp.signal_keywords.tech_adoption || []);
+  renderChips("chips-website", state.icp.signal_keywords.website_change || []);
+}
+
+function renderChips(containerId, list) {
+  const el = document.getElementById(containerId);
+  const draw = () => {
+    el.innerHTML = list.map((term, i) =>
+      `<span class="chip">${escapeHtml(term)}<button onclick="removeChip('${containerId}',${i})">×</button></span>`
+    ).join("") + `<button class="chip-add" onclick="addChip('${containerId}')">+ add</button>`;
+  };
+  el._list = list;
+  el._draw = draw;
+  draw();
+}
+function removeChip(containerId, i) {
+  const el = document.getElementById(containerId);
+  el._list.splice(i, 1);
+  el._draw();
+}
+function addChip(containerId) {
+  const term = prompt("Add a term:");
+  if (!term) return;
+  const el = document.getElementById(containerId);
+  el._list.push(term.trim().toLowerCase());
+  el._draw();
+}
+
+document.getElementById("hunter-key").addEventListener("input", e => state.hunterApiKey = e.target.value);
+
+// ---------- research (AI-suggested leads) ----------
+async function researchLeads() {
+  const btn = document.getElementById("research-btn");
+  btn.disabled = true; btn.textContent = "Thinking…";
+  try {
+    const res = await fetch("/api/research-leads", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ llm: state.llm, icp: state.icp, count: 8 }),
+    });
+    const data = await res.json();
+    const el = document.getElementById("research-results");
+    if (data.error) { el.innerHTML = `<p class="hint">${escapeHtml(data.error)}</p>`; return; }
+    el.innerHTML = data.companies.map((c, i) => `
+      <label class="research-row">
+        <input type="checkbox" data-name="${escapeAttr(c.name)}" data-reason="${escapeAttr(c.reason)}" checked>
+        <span><span class="rname">${escapeHtml(c.name)}</span><span class="badge-unverified">unverified</span>
+        <span class="rreason">${escapeHtml(c.reason)}</span></span>
+      </label>`).join("") +
+      `<button class="btn btn-secondary" style="margin-top:10px" onclick="addSelectedResearch()">Add selected to my lead list</button>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "Suggest candidate companies";
+  }
+}
+
+function addSelectedResearch() {
+  const boxes = document.querySelectorAll('#research-results input[type="checkbox"]:checked');
+  const added = [];
+  boxes.forEach(b => added.push({ name: b.dataset.name, reason: b.dataset.reason }));
+  state.manualCompanies = state.manualCompanies.concat(added);
+  document.getElementById("research-results").innerHTML =
+    `<p class="hint">Added ${added.length} compan${added.length === 1 ? "y" : "ies"} — they'll be scored alongside anything you uploaded.</p>`;
+}
+
+// ---------- generate leads ----------
+async function generateLeads() {
+  // pull chip lists back into state.icp before sending
+  state.icp.target_industries = document.getElementById("chips-industries")._list;
+  state.icp.description_keywords = document.getElementById("chips-description")._list;
+  state.icp.signal_keywords.hiring_surge = document.getElementById("chips-hiring")._list;
+  state.icp.signal_keywords.tech_adoption = document.getElementById("chips-tech")._list;
+  state.icp.signal_keywords.website_change = document.getElementById("chips-website")._list;
+
+  goStep(3);
+  document.getElementById("leads-loading").style.display = "block";
+  document.getElementById("leads-content").innerHTML = "";
+
+  try {
+    const res = await fetch("/api/generate-leads", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        llm: state.llm, icp: state.icp, accounts_csv: state.accountsCsvText,
+        manual_companies: state.manualCompanies, hunter_api_key: state.hunterApiKey,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { document.getElementById("leads-content").innerHTML = `<div class="card">${escapeHtml(data.error)}</div>`; return; }
+    state.runId = data.run_id;
+    state.packages = data.packages;
+    state.extraTouches = {};
+    renderLeads(data.used_sample_data, data.enriched_emails);
+  } catch (e) {
+    document.getElementById("leads-content").innerHTML = `<div class="card">Something went wrong: ${escapeHtml(String(e))}</div>`;
+  } finally {
+    document.getElementById("leads-loading").style.display = "none";
+  }
+}
+
+function renderLeads(usedSample, enrichedEmails) {
+  const qualified = state.packages.filter(p => p.verdict === "qualified").length;
+  const nurture = state.packages.filter(p => p.verdict === "nurture").length;
+  const drafted = state.packages.reduce((n, p) => n + Object.keys(p.sequences || {}).length, 0);
+
+  let html = "";
+  if (usedSample) {
+    html += `<div class="sample-note">Showing the bundled sample account list — upload your own CSV, or add AI-researched companies, in step 2 to score real target accounts instead.</div>`;
+  }
+  if (enrichedEmails) {
+    html += `<div class="sample-note">Hunter.io found ${enrichedEmails} missing email${enrichedEmails === 1 ? "" : "s"}.</div>`;
+  }
+  html += `<div class="summary-bar">
+    <div class="stat"><div class="n">${state.packages.length}</div><div class="l">accounts scored</div></div>
+    <div class="stat"><div class="n">${qualified}</div><div class="l">qualified</div></div>
+    <div class="stat"><div class="n">${nurture}</div><div class="l">nurture</div></div>
+    <div class="stat"><div class="n">${drafted}</div><div class="l">sequences drafted</div></div>
+  </div>`;
+
+  html += state.packages.map((p, i) => leadCard(p, i)).join("");
+
+  html += `<div class="export-bar">
+    <button class="btn btn-primary" onclick="exportLeads()">Export to ${escapeHtml(crmLabel())}</button>
+    <span id="export-status"></span>
+  </div>`;
+
+  document.getElementById("leads-content").innerHTML = html;
+}
+
+function crmLabel() {
+  return {csv:"CSV", builtin:"Built-in CRM", hubspot:"HubSpot", salesforce:"Salesforce", zoho:"Zoho"}[state.crm.provider] || "CRM";
+}
+
+function leadCard(p, i) {
+  const signals = (p.signals || []).map(s => `<span class="signal-tag">${escapeHtml(s.type)}: ${escapeHtml(s.evidence)}</span>`).join("");
+  const dossier = p.dossier ? `<div class="dossier">
+      <div><b>Summary</b> — ${escapeHtml(p.dossier.summary)}</div>
+      <div style="margin-top:6px"><b>Likely pain points</b> — ${escapeHtml((p.dossier.pain_points||[]).join("; "))}</div>
+      <div style="margin-top:6px"><b>Angle</b> — ${escapeHtml(p.dossier.recommended_angle)}</div>
+    </div>` : "";
+
+  const sequences = p.dossier ? (p.contacts || []).map(contact => {
+    const touches = (p.sequences || {})[contact.id] || [];
+    const touchesHtml = touches.map((t, ti) => touchHtml(contact.id, t, ti)).join("");
+    const usedChannels = new Set(touches.map(t => t.channel));
+    const addRow = channelButtonsHtml(contact, usedChannels);
+    return `<div style="margin-top:10px" id="seqblock-${contact.id}">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px">Drip sequence for ${escapeHtml(contact.name)} · ${escapeHtml(contact.title)}</div>
+        <div id="touches-${contact.id}">${touchesHtml}</div>
+        ${addRow}
+      </div>`;
+  }).join("") : "";
+
+  return `<div class="lead" id="lead-${i}">
+    <div class="lead-head" onclick="document.getElementById('lead-${i}').classList.toggle('open')">
+      <span class="caret">▸</span>
+      <span class="score">${p.combined_score.toFixed(2)}</span>
+      <span class="name">${escapeHtml(p.company.name)}<small>${escapeHtml(p.company.industry || "")} · ${p.company.employee_count || "?"} employees</small></span>
+      <span class="verdict ${p.verdict}">${p.verdict.replace("_"," ")}</span>
+    </div>
+    <div class="lead-body">
+      <div class="signal-tags">${signals || '<span class="signal-tag">no signals detected</span>'}</div>
+      ${dossier}
+      ${sequences}
+    </div>
+  </div>`;
+}
+
+function editTouch(contactId, touchIndex, field, value) {
+  state.edits[contactId] = state.edits[contactId] || {};
+  state.edits[contactId][touchIndex] = state.edits[contactId][touchIndex] || {};
+  state.edits[contactId][touchIndex][field] = value;
+}
+
+function touchHtml(contactId, t, ti) {
+  return `
+      <div class="touch">
+        <div class="touch-head"><span class="ch">${escapeHtml(t.channel)} · day ${t.day_offset}</span></div>
+        ${t.subject !== null ? `<input value="${escapeAttr(t.subject)}" oninput="editTouch('${contactId}',${ti},'subject',this.value)">` : ""}
+        <textarea oninput="editTouch('${contactId}',${ti},'body',this.value)">${escapeHtml(t.body)}</textarea>
+      </div>`;
+}
+
+const CHANNEL_LABELS = {
+  linkedin_connection_note: "+ LinkedIn connection note",
+  x_dm: "+ X DM",
+  instagram_dm: "+ Instagram DM",
+};
+
+function channelButtonsHtml(contact, usedChannels) {
+  const available = [];
+  if (contact.linkedin_url && !usedChannels.has("linkedin_connection_note")) available.push("linkedin_connection_note");
+  if (contact.twitter_handle && !usedChannels.has("x_dm")) available.push("x_dm");
+  if (contact.instagram_handle && !usedChannels.has("instagram_dm")) available.push("instagram_dm");
+  if (!available.length) return "";
+  const buttons = available.map(ch =>
+    `<button onclick="draftChannelTouch('${contact.id}','${ch}',this)">${CHANNEL_LABELS[ch]}</button>`
+  ).join("");
+  return `<div class="add-touch-row">${buttons}</div>`;
+}
+
+async function draftChannelTouch(contactId, channel, btnEl) {
+  btnEl.disabled = true;
+  const original = btnEl.textContent;
+  btnEl.textContent = "Drafting…";
+  try {
+    const res = await fetch("/api/draft-touch", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ run_id: state.runId, contact_id: contactId, channel, llm: state.llm }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); btnEl.disabled = false; btnEl.textContent = original; return; }
+    document.getElementById(`touches-${contactId}`).insertAdjacentHTML(
+      "beforeend", touchHtml(contactId, data.touch, data.touch_index)
+    );
+    btnEl.remove(); // one draft per channel per contact
+  } catch (e) {
+    alert("Couldn't draft that touch: " + String(e));
+    btnEl.disabled = false; btnEl.textContent = original;
+  }
+}
+
+async function exportLeads() {
+  const statusEl = document.getElementById("export-status");
+  statusEl.textContent = "Exporting…";
+  try {
+    const res = await fetch("/api/export", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ run_id: state.runId, edits: state.edits, crm: state.crm }),
+    });
+    if (state.crm.provider === "csv" && res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "lead_queue.csv"; a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = "Downloaded lead_queue.csv";
+      return;
+    }
+    const data = await res.json();
+    statusEl.textContent = data.error ? data.error : `Exported ${data.exported} qualified account(s) to ${crmLabel()}.`;
+  } catch (e) {
+    statusEl.textContent = "Export failed: " + String(e);
+  }
+}
+
+function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+</script>
+</body>
+</html>

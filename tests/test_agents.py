@@ -49,3 +49,22 @@ def test_qualification_agent_includes_rationale_text():
     result = QualificationAgent(LLM).qualify(scored, None, ICP)
     assert result.rationale
     assert result.combined_score == 0.9
+
+
+def test_draft_channel_touch_respects_channel_char_limits():
+    dossier = ResearchAgent(LLM).build_dossier(COMPANY, SIGNALS)
+    for channel, (max_chars, _) in PersonalizationAgent.CHANNELS.items():
+        touch = PersonalizationAgent(LLM).draft_channel_touch(COMPANY, CONTACT, dossier, SIGNALS, channel)
+        assert touch.channel == channel
+        assert touch.subject is None
+        assert touch.body
+        assert len(touch.body) <= max_chars
+
+
+def test_draft_channel_touch_rejects_unknown_channel():
+    dossier = ResearchAgent(LLM).build_dossier(COMPANY, SIGNALS)
+    try:
+        PersonalizationAgent(LLM).draft_channel_touch(COMPANY, CONTACT, dossier, SIGNALS, "carrier_pigeon")
+        assert False, "expected ValueError"
+    except ValueError:
+        pass

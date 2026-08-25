@@ -10,3 +10,5 @@ dist/
 out/
 *.csv
 !examples/*.csv
+*.db
+icp/

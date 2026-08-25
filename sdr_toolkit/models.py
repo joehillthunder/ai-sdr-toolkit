@@ -27,6 +27,8 @@ class Contact:
     seniority: str  # "ic" | "manager" | "director" | "vp" | "c_level"
     email: Optional[str] = None
     linkedin_url: Optional[str] = None
+    twitter_handle: Optional[str] = None
+    instagram_handle: Optional[str] = None
 
 
 @dataclass

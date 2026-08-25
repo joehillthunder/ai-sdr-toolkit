@@ -17,10 +17,16 @@ dependencies = [
 
 [project.optional-dependencies]
 live = ["anthropic>=0.40"]
+openai = ["openai>=1.40"]
+web = ["flask>=3.0"]
 dev = ["pytest>=7.4"]
+all = ["ai-sdr-toolkit[live,openai,web]"]
 
 [project.scripts]
 sdr-toolkit = "sdr_toolkit.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["sdr_toolkit*"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:.*fetch failed.*:UserWarning"]

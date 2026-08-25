@@ -1,10 +1,11 @@
 """Activation: pushing prioritized, drafted work out to where reps live.
 
-`CsvExportAdapter` always works offline. `HubSpotAdapter` is a real
-integration (HubSpot CRM API v3) that activates when `HUBSPOT_ACCESS_TOKEN`
-is set — it upserts the company, notes the qualification rationale, and
-logs the drafted sequence as a task so a rep's queue is the pipeline's
-output, not a spreadsheet someone has to re-key.
+`CsvExportAdapter` always works offline. `HubSpotAdapter`, `SalesforceAdapter`,
+and `ZohoAdapter` are real integrations that activate once their credentials
+are set — each upserts the company, notes the qualification rationale, and
+only touches accounts the qualification agent verdicts "qualified", so a
+rep's CRM view is the pipeline's filtered output, not a spreadsheet someone
+has to re-key. No CRM yet? See `sdr_toolkit.simple_crm.SimpleCRMAdapter`.
 """
 
 from __future__ import annotations
@@ -116,6 +117,98 @@ class HubSpotAdapter(ActivationAdapter):
         }
         requests.post(
             f"{self.BASE_URL}/crm/v3/objects/companies",
+            headers=self._headers(),
+            json=payload,
+            timeout=10,
+        )
+
+
+class SalesforceAdapter(ActivationAdapter):
+    """Upserts Accounts into Salesforce via the REST API (sobjects/Account).
+
+    Requires a pre-obtained OAuth access token and the org's instance URL
+    (`SALESFORCE_ACCESS_TOKEN`, `SALESFORCE_INSTANCE_URL` — e.g.
+    `https://yourorg.my.salesforce.com`). Getting that token is a normal
+    Salesforce Connected App / OAuth flow, out of scope for this adapter,
+    which only makes the authenticated API calls once you have one.
+    """
+
+    API_VERSION = "v59.0"
+
+    def __init__(self, instance_url: str | None = None, access_token: str | None = None):
+        self.instance_url = (instance_url or os.environ.get("SALESFORCE_INSTANCE_URL") or "").rstrip("/")
+        self.access_token = access_token or os.environ.get("SALESFORCE_ACCESS_TOKEN")
+        if not self.instance_url or not self.access_token:
+            raise RuntimeError("SALESFORCE_INSTANCE_URL and SALESFORCE_ACCESS_TOKEN must both be set.")
+        if requests is None:  # pragma: no cover
+            raise RuntimeError("The 'requests' package is required for SalesforceAdapter.")
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Bearer {self.access_token}", "Content-Type": "application/json"}
+
+    def activate(self, packages: list[ProspectPackage]) -> None:
+        for pkg in packages:
+            if not pkg.qualification or pkg.qualification.verdict != "qualified":
+                continue
+            self._upsert_account(pkg)
+
+    def _upsert_account(self, pkg: ProspectPackage) -> None:
+        sa = pkg.scored_account
+        payload = {
+            "Name": sa.company.name,
+            "Website": f"https://{sa.company.domain}",
+            "Industry": sa.company.industry,
+            "NumberOfEmployees": sa.company.employee_count,
+            "Description": pkg.dossier.summary if pkg.dossier else sa.company.description,
+        }
+        requests.post(
+            f"{self.instance_url}/services/data/{self.API_VERSION}/sobjects/Account",
+            headers=self._headers(),
+            json=payload,
+            timeout=10,
+        )
+
+
+class ZohoAdapter(ActivationAdapter):
+    """Upserts Accounts into Zoho CRM via the v2 REST API.
+
+    Requires `ZOHO_ACCESS_TOKEN` (an OAuth token with `ZohoCRM.modules.accounts`
+    scope) and `ZOHO_API_DOMAIN` (e.g. `https://www.zohoapis.com`, or your
+    region's equivalent — `.eu`, `.in`, etc.).
+    """
+
+    def __init__(self, access_token: str | None = None, api_domain: str | None = None):
+        self.access_token = access_token or os.environ.get("ZOHO_ACCESS_TOKEN")
+        self.api_domain = (api_domain or os.environ.get("ZOHO_API_DOMAIN") or "https://www.zohoapis.com").rstrip("/")
+        if not self.access_token:
+            raise RuntimeError("ZOHO_ACCESS_TOKEN is not set.")
+        if requests is None:  # pragma: no cover
+            raise RuntimeError("The 'requests' package is required for ZohoAdapter.")
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Zoho-oauthtoken {self.access_token}", "Content-Type": "application/json"}
+
+    def activate(self, packages: list[ProspectPackage]) -> None:
+        for pkg in packages:
+            if not pkg.qualification or pkg.qualification.verdict != "qualified":
+                continue
+            self._upsert_account(pkg)
+
+    def _upsert_account(self, pkg: ProspectPackage) -> None:
+        sa = pkg.scored_account
+        payload = {
+            "data": [
+                {
+                    "Account_Name": sa.company.name,
+                    "Website": f"https://{sa.company.domain}",
+                    "Industry": sa.company.industry,
+                    "Employees": sa.company.employee_count,
+                    "Description": pkg.dossier.summary if pkg.dossier else sa.company.description,
+                }
+            ]
+        }
+        requests.post(
+            f"{self.api_domain}/crm/v2/Accounts",
             headers=self._headers(),
             json=payload,
             timeout=10,

@@ -30,3 +30,26 @@ def test_prospect_command_exports_csv(tmp_path, capsys):
         rows = list(csv.DictReader(f))
     assert len(rows) == 8  # all bundled demo companies
     assert {"company", "combined_score", "verdict"}.issubset(rows[0].keys())
+
+
+def test_crm_list_on_empty_db_reports_nothing_saved(tmp_path, capsys):
+    db_path = tmp_path / "empty.db"
+    exit_code = main(["crm", "list", "--db", str(db_path)])
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "No accounts saved yet" in out
+
+
+def test_crm_list_shows_saved_accounts(tmp_path, capsys):
+    from sdr_toolkit.simple_crm import SimpleCRMAdapter
+    from sdr_toolkit.models import Company, ProspectPackage, ScoredAccount
+
+    db_path = tmp_path / "crm.db"
+    company = Company("acme", "Acme AI", "acme.ai", "ai", 80, "SF", "desc")
+    scored = ScoredAccount(company, icp_fit=0.9, signal_score=0.8, combined_score=0.85)
+    SimpleCRMAdapter(db_path).activate([ProspectPackage(scored, [], None, None, {})])
+
+    exit_code = main(["crm", "list", "--db", str(db_path)])
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Acme AI" in out

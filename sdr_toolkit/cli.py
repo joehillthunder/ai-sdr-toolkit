@@ -137,13 +137,64 @@ def main(argv: list[str] | None = None) -> int:
     prospect_p.add_argument("--live", action="store_true", help="Use a real Claude model (requires ANTHROPIC_API_KEY).")
     prospect_p.add_argument("--export", type=str, default=None, help="Write the prioritized queue to this CSV path.")
 
+    wizard_p = sub.add_parser("wizard", help="Launch the browser-based lead wizard for non-technical users.")
+    wizard_p.add_argument("--port", type=int, default=5055)
+    wizard_p.add_argument("--no-browser", action="store_true", help="Don't auto-open a browser tab.")
+
+    crm_p = sub.add_parser("crm", help="Inspect the built-in local CRM (sdr_toolkit.simple_crm).")
+    crm_sub = crm_p.add_subparsers(dest="crm_command", required=True)
+    crm_list_p = crm_sub.add_parser("list", help="List accounts saved to the built-in CRM.")
+    crm_list_p.add_argument("--db", type=str, default="sdr_toolkit_crm.db")
+
     args = parser.parse_args(argv)
 
     if args.command == "demo":
         return run_pipeline(icp_path=None, limit=None, live=args.live, export=None)
     if args.command == "prospect":
         return run_pipeline(icp_path=args.icp, limit=args.limit, live=args.live, export=args.export)
+    if args.command == "wizard":
+        return run_wizard(port=args.port, open_browser=not args.no_browser)
+    if args.command == "crm" and args.crm_command == "list":
+        return print_crm_accounts(args.db)
     return 1
+
+
+def run_wizard(port: int, open_browser: bool) -> int:
+    try:
+        from .webapp.server import create_app
+    except ImportError:
+        print(
+            "error: the wizard needs Flask. Install it with `pip install -e '.[web]'`.",
+            file=sys.stderr,
+        )
+        return 1
+
+    app = create_app()
+    url = f"http://127.0.0.1:{port}"
+    print(f"Lead wizard running at {url}  (Ctrl+C to stop)")
+
+    if open_browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+
+    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+    return 0
+
+
+def print_crm_accounts(db_path: str) -> int:
+    from .simple_crm import list_accounts
+
+    accounts = list_accounts(db_path)
+    if not accounts:
+        print(f"No accounts saved yet in {db_path}.")
+        return 0
+    print(f"{'SCORE':>6}  {'VERDICT':<14} COMPANY")
+    print("-" * 60)
+    for a in accounts:
+        print(f"{a['combined_score']:>6.2f}  {a['verdict']:<14} {a['name']}")
+    return 0
 
 
 if __name__ == "__main__":

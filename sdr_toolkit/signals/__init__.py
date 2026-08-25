@@ -1,5 +1,6 @@
 from .base import SignalSource
 from .sources import (
+    CareersPageSignalSource,
     FundingSignalSource,
     HiringSurgeSignalSource,
     TechAdoptionSignalSource,
@@ -8,6 +9,7 @@ from .sources import (
 
 __all__ = [
     "SignalSource",
+    "CareersPageSignalSource",
     "FundingSignalSource",
     "HiringSurgeSignalSource",
     "TechAdoptionSignalSource",

@@ -33,6 +33,57 @@ def _keyword_matches(text: str, keywords: list[str]) -> list[str]:
     return [kw for kw in keywords if kw.lower() in text_lower]
 
 
+class CareersPageSignalSource(SignalSource):
+    """A generic, always-live, no-API-key hiring signal: checks a
+    company's own /careers and /jobs pages for relevant role keywords.
+
+    `HiringSurgeSignalSource`'s live mode needs a Greenhouse board token
+    per company, which most businesses — especially smaller ones — don't
+    have. This works for any company with a normal website, which is
+    most of them, making it the right default for a user-supplied account
+    list rather than the bundled demo companies.
+    """
+
+    name = "hiring_surge"
+
+    def __init__(self, keywords: list[str], timeout: float = 5.0):
+        self.keywords = keywords
+        self.timeout = timeout
+
+    def collect(self, companies: list[Company]) -> list[Signal]:
+        signals = []
+        for company in companies:
+            text = self._fetch(company)
+            matches = _keyword_matches(text, self.keywords)
+            if not matches:
+                continue
+            strength = round(min(1.0, len(matches) / 3), 3)
+            signals.append(
+                Signal(
+                    id=_uid(),
+                    company_id=company.id,
+                    type=self.name,
+                    strength=strength,
+                    detected_at=TODAY,
+                    evidence=f"Careers page mentions: {', '.join(matches)}",
+                    source="live:careers_page",
+                )
+            )
+        return signals
+
+    def _fetch(self, company: Company) -> str:
+        if requests is None:
+            return ""
+        for path in ("/careers", "/jobs"):
+            try:
+                resp = requests.get(f"https://{company.domain}{path}", timeout=self.timeout)
+                if resp.ok:
+                    return resp.text
+            except Exception as exc:  # noqa: BLE001
+                warnings.warn(f"Careers page fetch failed for {company.name}{path}: {exc}")
+        return ""
+
+
 class HiringSurgeSignalSource(SignalSource):
     """Detects hiring surges in roles relevant to the ICP.
 

@@ -16,26 +16,7 @@ from __future__ import annotations
 
 from .llm import LLMClient
 from .models import Company, Contact, Dossier, OutreachSequence, OutreachTouch, QualificationResult, ScoredAccount, Signal
-
-
-def _parse_labeled(text: str, keys: list[str]) -> dict[str, str]:
-    """Parse `KEY: value` (possibly multi-line, until the next known key)
-    blocks out of an LLM response."""
-    result: dict[str, str] = {k: "" for k in keys}
-    current = None
-    for line in text.splitlines():
-        stripped = line.strip()
-        matched_key = None
-        for k in keys:
-            if stripped.upper().startswith(f"{k}:"):
-                matched_key = k
-                break
-        if matched_key:
-            current = matched_key
-            result[current] = stripped[len(matched_key) + 1 :].strip()
-        elif current:
-            result[current] = (result[current] + " " + stripped).strip()
-    return result
+from .text import parse_labeled as _parse_labeled
 
 
 def _signal_context(signals: list[Signal]) -> str:
@@ -125,6 +106,48 @@ class PersonalizationAgent:
             OutreachTouch("email", 7, parsed["TOUCH_3_EMAIL_SUBJECT"], parsed["TOUCH_3_EMAIL_BODY"]),
         ]
         return OutreachSequence(contact_id=contact.id, touches=touches)
+
+    CHANNEL_SYSTEM = (
+        "You are an SDR writing ONE additional outreach touch for a specific "
+        "channel, referencing a buying signal. Keep it native to the channel: a "
+        "LinkedIn connection note is under 300 characters with no links; an X/Twitter "
+        "DM is short and casual; an Instagram DM is short, personal, and low-pressure. "
+        "Never write anything that reads as automated or mass-sent. Respond ONLY in "
+        "this exact labeled format:\n"
+        "BODY: <the message text>"
+    )
+
+    #: channel key -> (max characters, human description used in the prompt)
+    CHANNELS = {
+        "linkedin_connection_note": (300, "a LinkedIn connection request note"),
+        "x_dm": (280, "an X (Twitter) direct message"),
+        "instagram_dm": (400, "an Instagram direct message"),
+    }
+
+    def draft_channel_touch(
+        self,
+        company: Company,
+        contact: Contact,
+        dossier: Dossier,
+        signals: list[Signal],
+        channel: str,
+        day_offset: int = 0,
+    ) -> OutreachTouch:
+        if channel not in self.CHANNELS:
+            raise ValueError(f"Unknown channel: {channel!r}. Expected one of {list(self.CHANNELS)}.")
+        max_chars, description = self.CHANNELS[channel]
+        prompt = (
+            f"Channel: {description} (hard limit {max_chars} characters)\n"
+            f"Company: {company.name}\n"
+            f"Contact: {contact.name}, {contact.title}\n"
+            f"Recommended angle: {dossier.recommended_angle}\n"
+            f"Signals:\n{_signal_context(signals)}\n\n"
+            "Draft it now."
+        )
+        raw = self.llm.generate(self.CHANNEL_SYSTEM, prompt)
+        parsed = _parse_labeled(raw, ["BODY"])
+        body = (parsed["BODY"] or "")[:max_chars]
+        return OutreachTouch(channel=channel, day_offset=day_offset, subject=None, body=body)
 
 
 class QualificationAgent:

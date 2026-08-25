@@ -6,6 +6,10 @@ qualified output per rep, not raw volume of AI-generated noise.
 
 [![CI](https://github.com/joehillthunder/ai-sdr-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/joehillthunder/ai-sdr-toolkit/actions/workflows/ci.yml)
 
+Rolling this out to a team? See **[docs/ONBOARDING.md](docs/ONBOARDING.md)**
+for a phased rollout plan, a 60-minute training session outline, the
+daily rep workflow, and what to measure.
+
 ## Why this exists
 
 Built as a working reference implementation of what a JD for a sales

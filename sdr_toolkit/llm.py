@@ -36,6 +36,18 @@ class MockLLMClient:
         # heuristics over the prompt so callers get realistic, parseable
         # text without any network access.
         system_lower = system.lower()
+        # BD system prompts are checked first: they're the most specific
+        # markers, and some (e.g. the account research chain's
+        # PERSONALIZED_OUTREACH field) contain words the generic SDR
+        # checks below would otherwise misfire on.
+        if "account research chain" in system_lower:
+            return self._bd_account(prompt)
+        if "partnership relevance analyst" in system_lower:
+            return self._bd_partner_relevance(prompt)
+        if "technical partnership analyst" in system_lower:
+            return self._bd_technical(prompt)
+        if "partnership opportunity chain" in system_lower:
+            return self._bd_hunter(prompt)
         if "dossier" in system_lower:
             return self._dossier(prompt)
         if "additional outreach touch" in system_lower:
@@ -105,6 +117,63 @@ class MockLLMClient:
             "3. Demo Cloud Systems — Public homepage language closely matches your ICP terms.\n"
             "4. Northwind Data Labs — Recently funded and in your target size range.\n"
             "5. Bluepeak Software — Industry and description keywords both match."
+        )
+
+    @staticmethod
+    def _bd_account(prompt: str) -> str:
+        return (
+            "ORG_MAPPING: Centralized platform/product org reporting into a Chief Product or Chief "
+            "Technology Officer, with a separate innovation or advanced-technology group evaluating "
+            "outside partners.\n"
+            "PRODUCT_STRATEGY: Investing in owning more of the compute/software stack in-house rather "
+            "than buying off-the-shelf, which is exactly where a deep technical partnership fits better "
+            "than a vendor relationship.\n"
+            "PARTNERSHIP_HYPOTHESIS: A co-engineered integration into their existing platform beats a "
+            "point-solution sale -- position as a technology partner, not a line item.\n"
+            "TARGET_EXECUTIVES: VP of Platform Engineering; Head of Advanced Technology / Innovation; "
+            "VP of Product for the relevant business unit.\n"
+            "RECENT_INITIATIVES: Public statements and job postings point to active investment in this "
+            "area over the last two quarters.\n"
+            "COMPETITIVE_LANDSCAPE: At least one incumbent vendor relationship exists; the opening is "
+            "around a capability gap that vendor doesn't cover.\n"
+            "PERSONALIZED_OUTREACH: Reference the specific initiative above and lead with a technical "
+            "hypothesis, not a generic partnership pitch.\n"
+            "MEETING_PREP: Confirm their current architecture and build-vs-partner stance; bring one "
+            "concrete integration sketch, not a slide deck; ask who owns the make-or-buy decision."
+        )
+
+    @staticmethod
+    def _bd_partner_relevance(prompt: str) -> str:
+        return (
+            "RELEVANT: yes\n"
+            "TOPICS: agentic ai, local inference\n"
+            "RELEVANCE: This announcement signals new on-device AI investment, which typically opens a "
+            "window for a platform or model partner before the architecture is locked in."
+        )
+
+    @staticmethod
+    def _bd_technical(prompt: str) -> str:
+        return (
+            "INTEGRATION_OPPORTUNITY: The API exposes a plugin/extension point that a partner "
+            "integration could target directly, without needing access to their core codebase.\n"
+            "ENGINEERING_EFFORT: A scoped integration against the documented API/SDK -- days to a "
+            "few weeks for a working prototype, assuming their docs are accurate.\n"
+            "PARTNER_PITCH: A reference integration that ships inside their existing developer surface, "
+            "reducing their build cost and giving them a capability their competitors don't have yet."
+        )
+
+    @staticmethod
+    def _bd_hunter(prompt: str) -> str:
+        return (
+            "OPPORTUNITY: On-device/agentic AI capability that plausibly needs a specialized model or "
+            "platform partner rather than an in-house build.\n"
+            "PARTNER_HYPOTHESIS: A privately deployable, customizable model or platform layer running on "
+            "their own compute, positioned as a technology partnership rather than a vendor contract.\n"
+            "TARGET_EXECUTIVE: VP of Platform / Head of AI Strategy for the relevant business unit.\n"
+            "PITCH: Lead with a concrete technical integration sketch tied to the signal, not a generic "
+            "partnership pitch.\n"
+            "NEXT_ACTION: Identify the named executive, confirm the initiative is still build-vs-partner "
+            "undecided, and request a 20-minute technical scoping call."
         )
 
 

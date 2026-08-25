@@ -1,0 +1,25 @@
+# Partner-intelligence watchlist for `sdr-toolkit bd watch` / `bd hunt --config`.
+#
+# `companies` maps a name to that company's own public newsroom or
+# engineering-blog RSS/Atom feed URL. Replace every REPLACE_ME below with
+# the real feed URL -- find it by checking the company's press/newsroom
+# page for an RSS icon, or appending common paths like /feed, /rss.xml,
+# or /newsroom/rss to their press page. Not every company publishes one;
+# skip any that don't.
+#
+# `topics` is what a signal has to plausibly relate to before the
+# PartnerIntelAgent will even consider it a partnership opening.
+
+companies:
+  Dell: "REPLACE_ME_WITH_DELL_NEWSROOM_RSS_URL"
+  Lenovo: "REPLACE_ME_WITH_LENOVO_NEWSROOM_RSS_URL"
+  Samsung: "REPLACE_ME_WITH_SAMSUNG_NEWSROOM_RSS_URL"
+  Barco: "REPLACE_ME_WITH_BARCO_NEWSROOM_RSS_URL"
+  HP: "REPLACE_ME_WITH_HP_NEWSROOM_RSS_URL"
+
+topics:
+  - AI PCs
+  - local inference
+  - spatial computing
+  - displays
+  - agentic AI

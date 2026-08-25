@@ -125,7 +125,7 @@ def run_pipeline(icp_path: str | None, limit: int | None, live: bool, export: st
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="sdr-toolkit", description="AI-native SDR & BD prospecting toolkit")
+    parser = argparse.ArgumentParser(prog="sdr-toolkit", description="AI SDR Toolkit -- SDR prospecting + BD partnership discovery")
     sub = parser.add_subparsers(dest="command", required=True)
 
     demo_p = sub.add_parser("demo", help="Run the full pipeline on bundled sample data (zero config).")
@@ -146,6 +146,35 @@ def main(argv: list[str] | None = None) -> int:
     crm_list_p = crm_sub.add_parser("list", help="List accounts saved to the built-in CRM.")
     crm_list_p.add_argument("--db", type=str, default="sdr_toolkit_crm.db")
 
+    bd_p = sub.add_parser("bd", help="Business development: long-cycle account research & partnership discovery.")
+    bd_sub = bd_p.add_subparsers(dest="bd_command", required=True)
+
+    bd_account_p = bd_sub.add_parser("account", help="Run the 9-stage BD account research chain.")
+    bd_account_p.add_argument("company")
+    bd_account_p.add_argument("--product", type=str, default="", help="Your product/technology, for partnership framing.")
+    bd_account_p.add_argument("--context", type=str, default="", help="Any extra context to seed the research with.")
+    bd_account_p.add_argument("--live", action="store_true")
+    bd_account_p.add_argument("--provider", type=str, default=None)
+
+    bd_watch_p = bd_sub.add_parser("watch", help="Check watched companies' feeds for partnership-relevant announcements.")
+    bd_watch_p.add_argument("--config", type=str, required=True, help="YAML: companies (name -> RSS url) + topics.")
+    bd_watch_p.add_argument("--live", action="store_true")
+    bd_watch_p.add_argument("--provider", type=str, default=None)
+
+    bd_tech_p = bd_sub.add_parser("analyze-tech", help="Assess an SDK/API/repo/product doc for partnership fit.")
+    bd_tech_p.add_argument("source", help="A URL or a local file path.")
+    bd_tech_p.add_argument("--product", type=str, default="")
+    bd_tech_p.add_argument("--live", action="store_true")
+    bd_tech_p.add_argument("--provider", type=str, default=None)
+
+    bd_hunt_p = bd_sub.add_parser("hunt", help="Turn a signal into a full partnership opportunity chain.")
+    bd_hunt_p.add_argument("--company", type=str, default=None, help="Used with --signal for a one-off manual run.")
+    bd_hunt_p.add_argument("--signal", type=str, default=None, help="Freeform description of the signal you noticed.")
+    bd_hunt_p.add_argument("--config", type=str, default=None, help="Run watch first, then hunt on every signal found.")
+    bd_hunt_p.add_argument("--criteria", type=str, default="", help="Your partnership criteria/ICP, freeform.")
+    bd_hunt_p.add_argument("--live", action="store_true")
+    bd_hunt_p.add_argument("--provider", type=str, default=None)
+
     args = parser.parse_args(argv)
 
     if args.command == "demo":
@@ -156,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_wizard(port=args.port, open_browser=not args.no_browser)
     if args.command == "crm" and args.crm_command == "list":
         return print_crm_accounts(args.db)
+    if args.command == "bd":
+        return run_bd_command(args)
     return 1
 
 
@@ -195,6 +226,128 @@ def print_crm_accounts(db_path: str) -> int:
     for a in accounts:
         print(f"{a['combined_score']:>6.2f}  {a['verdict']:<14} {a['name']}")
     return 0
+
+
+# --------------------------------------------------------------- BD commands
+
+def run_bd_command(args) -> int:
+    from .bd.agents import AccountResearchAgent, PartnershipHunterAgent, TechnicalBDAnalystAgent
+    from .bd.partner_feeds import watch_partners
+
+    provider = args.provider or ("anthropic" if args.live else "mock")
+    try:
+        llm = get_client(provider=provider)
+    except RuntimeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if args.bd_command == "account":
+        dossier = AccountResearchAgent(llm).research(args.company, our_product=args.product, context=args.context)
+        _print_bd_account(dossier)
+        return 0
+
+    if args.bd_command == "watch":
+        feeds, topics = _load_watchlist(args.config)
+        signals = watch_partners(llm, feeds, topics)
+        _print_partner_signals(signals)
+        return 0
+
+    if args.bd_command == "analyze-tech":
+        text = _read_source(args.source)
+        if not text:
+            print(f"error: could not read anything from {args.source!r}", file=sys.stderr)
+            return 1
+        assessment = TechnicalBDAnalystAgent(llm).analyze(args.source, text, our_product=args.product)
+        _print_technical_assessment(assessment)
+        return 0
+
+    if args.bd_command == "hunt":
+        hunter = PartnershipHunterAgent(llm)
+        if args.config:
+            feeds, topics = _load_watchlist(args.config)
+            signals = watch_partners(llm, feeds, topics)
+            if not signals:
+                print("No partnership-relevant signals found in this run.")
+                return 0
+            for signal in signals:
+                opportunity = hunter.hunt_from_signal(signal, partnership_criteria=args.criteria)
+                _print_partnership_opportunity(opportunity)
+            return 0
+        if args.company and args.signal:
+            opportunity = hunter.hunt(args.company, args.signal, partnership_criteria=args.criteria)
+            _print_partnership_opportunity(opportunity)
+            return 0
+        print("error: pass either --config <watchlist.yaml>, or both --company and --signal.", file=sys.stderr)
+        return 1
+
+    return 1
+
+
+def _read_source(source: str) -> str:
+    """URL -> fetched page text; existing local path -> file contents;
+    anything else -> treated as literal pasted text."""
+    from pathlib import Path
+
+    if source.startswith(("http://", "https://")):
+        from .icp_builder import fetch_url_text
+
+        return fetch_url_text(source)
+    path = Path(source)
+    if path.is_file():
+        return path.read_text(errors="ignore")
+    return source
+
+
+def _load_watchlist(path: str) -> tuple[dict[str, str], list[str]]:
+    import yaml
+
+    raw = yaml.safe_load(open(path)) or {}
+    return raw.get("companies", {}), raw.get("topics", [])
+
+
+def _print_bd_account(d) -> None:
+    print(f"\n=== BD Account Research: {d.company} ===")
+    print(f"\nOrg mapping:            {d.org_mapping}")
+    print(f"Product strategy:       {d.product_strategy}")
+    print(f"Partnership hypothesis: {d.partnership_hypothesis}")
+    print(f"Target executives:      {'; '.join(d.target_executives)}")
+    print(f"Recent initiatives:     {d.recent_initiatives}")
+    print(f"Competitive landscape:  {d.competitive_landscape}")
+    print(f"\nPersonalized outreach angle:\n  {d.personalized_outreach}")
+    print("\nMeeting prep:")
+    for item in d.meeting_prep:
+        print(f"  - {item}")
+
+
+def _print_partner_signals(signals) -> None:
+    if not signals:
+        print("No partnership-relevant announcements found.")
+        return
+    for s in signals:
+        a = s.announcement
+        print(f"\n[{a.company}] {a.title}")
+        if a.published_at:
+            print(f"  Published: {a.published_at}")
+        print(f"  Topics matched: {', '.join(s.topics_matched)}")
+        print(f"  Why it matters: {s.relevance}")
+        print(f"  URL: {a.url}")
+
+
+def _print_technical_assessment(t) -> None:
+    print(f"\n=== Technical BD Assessment: {t.source} ===")
+    print(f"\nIntegration opportunity: {t.integration_opportunity}")
+    print(f"Engineering effort:      {t.engineering_effort}")
+    print(f"Partner pitch:           {t.partner_pitch}")
+
+
+def _print_partnership_opportunity(o) -> None:
+    print(f"\n=== Partnership Opportunity: {o.company} ===")
+    print(f"Signal:              {o.signal}")
+    print(f"Opportunity:         {o.opportunity}")
+    print(f"Partner hypothesis:  {o.partner_hypothesis}")
+    print(f"Target executive:    {o.target_executive}")
+    print(f"Pitch:               {o.pitch}")
+    print(f"Next action:         {o.next_action}")
 
 
 if __name__ == "__main__":

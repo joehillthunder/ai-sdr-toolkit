@@ -170,8 +170,17 @@ def create_app() -> Flask:
             headquarters=(company_data.get("headquarters") or "").strip(),
             description=(company_data.get("description") or "").strip(),
         )
+        contact_data = data.get("contact") or {}
         contact = Contact(
-            id=f"{company_id}-c1", company_id=company_id, name="Decision Maker", title="Leadership", seniority="unknown",
+            id=f"{company_id}-c1",
+            company_id=company_id,
+            name=(contact_data.get("name") or "").strip() or "Decision Maker",
+            title=(contact_data.get("title") or "").strip() or "Leadership",
+            seniority="unknown",
+            email=(contact_data.get("email") or "").strip() or None,
+            linkedin_url=(contact_data.get("linkedin_url") or "").strip() or None,
+            twitter_handle=(contact_data.get("twitter_handle") or "").strip() or None,
+            instagram_handle=(contact_data.get("instagram_handle") or "").strip() or None,
         )
 
         pipeline = Pipeline(icp=icp, llm_client=client, signal_sources=_default_sources(icp))
@@ -358,6 +367,7 @@ def _load_accounts(
                     title=(row.get("contact_title") or "").strip() or "Leadership",
                     seniority="unknown",
                     email=(row.get("contact_email") or "").strip() or None,
+                    linkedin_url=(row.get("contact_linkedin") or "").strip() or None,
                     twitter_handle=(row.get("contact_twitter") or "").strip() or None,
                     instagram_handle=(row.get("contact_instagram") or "").strip() or None,
                 )

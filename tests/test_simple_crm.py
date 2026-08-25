@@ -14,7 +14,10 @@ from sdr_toolkit.models import (
 from sdr_toolkit.simple_crm import SimpleCRMAdapter, list_accounts
 
 COMPANY = Company("acme", "Acme AI", "acme.ai", "ai", 80, "SF", "desc")
-CONTACT = Contact("acme-c1", "acme", "Jamie Rivera", "VP Eng", "vp", "jamie@acme.ai")
+CONTACT = Contact(
+    "acme-c1", "acme", "Jamie Rivera", "VP Eng", "vp",
+    email="jamie@acme.ai", linkedin_url="linkedin.com/in/jamierivera",
+)
 
 
 def _package(verdict="qualified", with_sequence=True):
@@ -72,3 +75,15 @@ def test_simple_crm_saves_sequence_touches(tmp_path):
     rows = conn.execute("SELECT subject, body FROM sequence_touches").fetchall()
     conn.close()
     assert rows == [("Hi", "Body one")]
+
+
+def test_simple_crm_saves_contact_linkedin_url(tmp_path):
+    import sqlite3
+
+    db_path = tmp_path / "crm.db"
+    SimpleCRMAdapter(db_path).activate([_package()])
+
+    conn = sqlite3.connect(db_path)
+    row = conn.execute("SELECT linkedin_url FROM contacts WHERE id = ?", (CONTACT.id,)).fetchone()
+    conn.close()
+    assert row == ("linkedin.com/in/jamierivera",)

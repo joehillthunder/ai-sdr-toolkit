@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     account_id TEXT NOT NULL REFERENCES accounts(id),
     name TEXT,
     title TEXT,
-    email TEXT
+    email TEXT,
+    linkedin_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sequence_touches (
@@ -111,10 +112,11 @@ class SimpleCRMAdapter(ActivationAdapter):
         )
         for contact in pkg.contacts:
             conn.execute(
-                """INSERT INTO contacts (id, account_id, name, title, email)
-                   VALUES (?, ?, ?, ?, ?)
-                   ON CONFLICT(id) DO UPDATE SET name=excluded.name, title=excluded.title, email=excluded.email""",
-                (contact.id, sa.company.id, contact.name, contact.title, contact.email),
+                """INSERT INTO contacts (id, account_id, name, title, email, linkedin_url)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET name=excluded.name, title=excluded.title,
+                     email=excluded.email, linkedin_url=excluded.linkedin_url""",
+                (contact.id, sa.company.id, contact.name, contact.title, contact.email, contact.linkedin_url),
             )
             sequence = pkg.sequences.get(contact.id)
             if not sequence:

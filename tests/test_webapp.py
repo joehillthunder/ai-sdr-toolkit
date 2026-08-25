@@ -103,6 +103,25 @@ def test_generate_leads_with_custom_csv(client):
     assert data["packages"][0]["contacts"][0]["name"] == "Sam Lee"
 
 
+def test_generate_leads_csv_carries_contact_linkedin_url(client):
+    icp_resp = client.post(
+        "/api/build-icp",
+        json={"llm": {"provider": "mock"}, "company_name": "Acme", "website_urls": [], "description": "AI startups"},
+    )
+    icp = icp_resp.get_json()["icp"]
+
+    csv_text = (
+        "company_name,domain,contact_name,contact_title,contact_linkedin\n"
+        "Test Robotics Co,testrobotics.example,Sam Lee,VP Eng,linkedin.com/in/samlee\n"
+    )
+    resp = client.post(
+        "/api/generate-leads",
+        json={"llm": {"provider": "mock"}, "icp": icp, "accounts_csv": csv_text},
+    )
+    data = resp.get_json()
+    assert data["packages"][0]["contacts"][0]["linkedin_url"] == "linkedin.com/in/samlee"
+
+
 def test_export_csv_download(client):
     icp_resp = client.post(
         "/api/build-icp",
@@ -288,6 +307,22 @@ def test_add_company_scores_and_appends_to_run(client):
     export_resp = client.post("/api/export", json={"run_id": run_id, "edits": {}, "crm": {"provider": "csv"}})
     assert b"Added Robotics Co" in export_resp.data
     assert len(RUNS[run_id].packages) == before + 1
+
+
+def test_add_company_with_contact_linkedin_url(client):
+    icp, leads = _generate_sample_run(client)
+    resp = client.post(
+        "/api/add-company",
+        json={
+            "run_id": leads["run_id"], "icp": icp, "llm": {"provider": "mock"},
+            "company": {"name": "Added Robotics Co"},
+            "contact": {"name": "Sam Lee", "title": "VP Eng", "linkedin_url": "linkedin.com/in/samlee"},
+        },
+    )
+    data = resp.get_json()
+    contact = data["package"]["contacts"][0]
+    assert contact["name"] == "Sam Lee"
+    assert contact["linkedin_url"] == "linkedin.com/in/samlee"
 
 
 def test_add_company_requires_a_name(client):

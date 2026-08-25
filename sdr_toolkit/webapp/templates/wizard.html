@@ -170,6 +170,14 @@
   .dossier { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; margin: 12px 0; }
   .dossier b { color: var(--primary-strong); }
 
+  .contacts { margin: 12px 0; display: flex; flex-direction: column; gap: 4px; }
+  .contact-line { font-size: 13.5px; }
+  .contact-line b { font-weight: 700; }
+  .contact-links { color: var(--ink-soft); font-size: 12.5px; }
+  .contact-links.muted { color: var(--muted); font-style: italic; }
+  .contact-links a { color: var(--primary-strong); text-decoration: none; }
+  .contact-links a:hover { text-decoration: underline; }
+
   .touch { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
   .touch-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .touch-head .ch { font-family: "IBM Plex Mono"; font-size: 11.5px; color: var(--primary-strong); text-transform: uppercase; }
@@ -278,7 +286,7 @@
       <div class="field">
         <label>Optional: a list of target accounts (CSV)</label>
         <div class="file-drop" id="csv-drop" onclick="document.getElementById('csv-input').click()">
-          Click to upload a CSV — columns: company_name, domain, industry, employee_count, description (optional: contact_name, contact_title, contact_email, contact_twitter, contact_instagram)<br>
+          Click to upload a CSV — columns: company_name, domain, industry, employee_count, description (optional: contact_name, contact_title, contact_email, contact_linkedin, contact_twitter, contact_instagram)<br>
           <small>Skip this and we'll run the wizard on a small bundled sample list instead, so you can see it work end to end.</small>
         </div>
         <input type="file" id="csv-input" accept=".csv" style="display:none">
@@ -630,6 +638,30 @@ function crmLabel() {
   return {csv:"CSV", builtin:"Built-in CRM", hubspot:"HubSpot", salesforce:"Salesforce", zoho:"Zoho", monday:"monday.com"}[state.crm.provider] || "CRM";
 }
 
+function normalizeUrl(raw) {
+  if (!raw) return "";
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
+function contactLine(contact) {
+  const parts = [`<b>${escapeHtml(contact.name)}</b>`];
+  if (contact.title) parts.push(escapeHtml(contact.title));
+  const links = [];
+  if (contact.linkedin_url) links.push(`<a href="${escapeAttr(normalizeUrl(contact.linkedin_url))}" target="_blank" rel="noopener">LinkedIn ↗</a>`);
+  if (contact.twitter_handle) links.push(`<a href="${escapeAttr(normalizeUrl(contact.twitter_handle))}" target="_blank" rel="noopener">X ↗</a>`);
+  if (contact.instagram_handle) links.push(`<a href="${escapeAttr(normalizeUrl(contact.instagram_handle))}" target="_blank" rel="noopener">Instagram ↗</a>`);
+  if (contact.email) links.push(escapeHtml(contact.email));
+  const linksHtml = links.length ? ` <span class="contact-links">${links.join(" · ")}</span>` : ` <span class="contact-links muted">no profile links on file</span>`;
+  return `<div class="contact-line">${parts.join(" · ")}${linksHtml}</div>`;
+}
+
+function contactNameWithLink(contact) {
+  const link = contact.linkedin_url
+    ? ` (<a href="${escapeAttr(normalizeUrl(contact.linkedin_url))}" target="_blank" rel="noopener">LinkedIn ↗</a>)`
+    : "";
+  return `${escapeHtml(contact.name)} · ${escapeHtml(contact.title)}${link}`;
+}
+
 function leadCard(p) {
   const id = p.company.id;
   const signals = (p.signals || []).map(s => `<span class="signal-tag">${escapeHtml(s.type)}: ${escapeHtml(s.evidence)}</span>`).join("");
@@ -639,13 +671,17 @@ function leadCard(p) {
       <div style="margin-top:6px"><b>Angle</b> — ${escapeHtml(p.dossier.recommended_angle)}</div>
     </div>` : "";
 
+  const contactsHtml = (p.contacts || []).length ? `<div class="contacts">
+      ${(p.contacts || []).map(contactLine).join("")}
+    </div>` : "";
+
   const sequences = p.dossier ? (p.contacts || []).map(contact => {
     const touches = (p.sequences || {})[contact.id] || [];
     const touchesHtml = touches.map((t, ti) => touchHtml(contact.id, t, ti)).join("");
     const usedChannels = new Set(touches.map(t => t.channel));
     const addRow = channelButtonsHtml(contact, usedChannels);
     return `<div style="margin-top:10px" id="seqblock-${contact.id}">
-        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px">Drip sequence for ${escapeHtml(contact.name)} · ${escapeHtml(contact.title)}</div>
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px">Drip sequence for ${contactNameWithLink(contact)}</div>
         <div id="touches-${contact.id}">${touchesHtml}</div>
         ${addRow}
       </div>`;
@@ -661,6 +697,7 @@ function leadCard(p) {
     </div>
     <div class="lead-body">
       <div class="signal-tags">${signals || '<span class="signal-tag">no signals detected</span>'}</div>
+      ${contactsHtml}
       ${dossier}
       ${sequences}
     </div>
@@ -767,6 +804,11 @@ function addCompanyFormHtml() {
       <input id="add-co-domain" placeholder="Domain (optional)">
       <input id="add-co-industry" placeholder="Industry (optional)">
     </div>
+    <div class="grid3">
+      <input id="add-co-contact-name" placeholder="Contact name (optional)">
+      <input id="add-co-contact-title" placeholder="Contact title (optional)">
+      <input id="add-co-contact-linkedin" placeholder="Contact LinkedIn URL (optional)">
+    </div>
     <button class="btn btn-secondary" id="add-co-btn" onclick="submitAddCompany()">Add &amp; score</button>
     <span id="add-co-status" style="margin-left:10px; font-size:13px; color:var(--ink-soft)"></span>
   </div>`;
@@ -791,6 +833,11 @@ async function submitAddCompany() {
           domain: document.getElementById("add-co-domain").value.trim(),
           industry: document.getElementById("add-co-industry").value.trim(),
         },
+        contact: {
+          name: document.getElementById("add-co-contact-name").value.trim(),
+          title: document.getElementById("add-co-contact-title").value.trim(),
+          linkedin_url: document.getElementById("add-co-contact-linkedin").value.trim(),
+        },
       }),
     });
     const data = await res.json();
@@ -801,9 +848,8 @@ async function submitAddCompany() {
     document.getElementById("lead-cards").innerHTML = state.packages.map(leadCard).join("");
     refreshSummaryBar();
     statusEl.textContent = "";
-    document.getElementById("add-co-name").value = "";
-    document.getElementById("add-co-domain").value = "";
-    document.getElementById("add-co-industry").value = "";
+    ["add-co-name","add-co-domain","add-co-industry","add-co-contact-name","add-co-contact-title","add-co-contact-linkedin"]
+      .forEach(id => document.getElementById(id).value = "");
   } catch (e) {
     statusEl.textContent = "Couldn't add that company: " + String(e);
   } finally {

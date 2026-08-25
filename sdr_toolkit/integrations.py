@@ -49,6 +49,8 @@ class CsvExportAdapter(ActivationAdapter):
             "top_signal",
             "recommended_angle",
             "first_contact",
+            "first_contact_title",
+            "first_contact_linkedin",
             "first_touch_subject",
             "first_touch_body",
         ]
@@ -73,6 +75,8 @@ class CsvExportAdapter(ActivationAdapter):
                         "top_signal": top_signal,
                         "recommended_angle": pkg.dossier.recommended_angle if pkg.dossier else "",
                         "first_contact": first_contact.name if first_contact else "",
+                        "first_contact_title": first_contact.title if first_contact else "",
+                        "first_contact_linkedin": first_contact.linkedin_url if first_contact else "",
                         "first_touch_subject": first_touch.subject if first_touch else "",
                         "first_touch_body": first_touch.body if first_touch else "",
                     }

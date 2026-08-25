@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Rollout Briefing</title>
+<meta name="description" content="A Head of Sales' rollout briefing for ai-sdr-toolkit: how the pipeline gates spend, how to phase the rollout, how to train the team, and what to measure.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F2F4F1;
+    --panel: #FFFFFF;
+    --ink: #14181D;
+    --ink-soft: #3E4750;
+    --slate: #67727C;
+    --line: #D9DFDA;
+    --line-strong: #C2CAC4;
+    --accent: #C86A16;
+    --accent-strong: #A5560F;
+    --accent-bg: #FBEADA;
+    --good: #2E7D5B;
+    --good-bg: #E1F0E8;
+    --watch: #57677B;
+    --watch-bg: #E7EAEF;
+    --muted: #9AA3AB;
+    --shadow: 0 1px 2px rgba(20,24,29,.06), 0 8px 24px rgba(20,24,29,.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181D;
+      --panel: #1B2027;
+      --ink: #F1F3F1;
+      --ink-soft: #C6CDD2;
+      --slate: #93A0AB;
+      --line: #2B323A;
+      --line-strong: #3A424C;
+      --accent: #EFA24C;
+      --accent-strong: #F6BE7C;
+      --accent-bg: rgba(239,162,76,.14);
+      --good: #63C79A;
+      --good-bg: rgba(99,199,154,.14);
+      --watch: #9FB0C4;
+      --watch-bg: rgba(159,176,196,.12);
+      --muted: #6E7982;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181D;
+    --panel: #1B2027;
+    --ink: #F1F3F1;
+    --ink-soft: #C6CDD2;
+    --slate: #93A0AB;
+    --line: #2B323A;
+    --line-strong: #3A424C;
+    --accent: #EFA24C;
+    --accent-strong: #F6BE7C;
+    --accent-bg: rgba(239,162,76,.14);
+    --good: #63C79A;
+    --good-bg: rgba(99,199,154,.14);
+    --watch: #9FB0C4;
+    --watch-bg: rgba(159,176,196,.12);
+    --muted: #6E7982;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, "Segoe UI", sans-serif;
+    font-size: 16.5px;
+    line-height: 1.55;
+  }
+  ::selection { background: var(--accent-bg); color: var(--accent-strong); }
+
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--ink);
+  }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .page {
+    display: grid;
+    grid-template-columns: 240px minmax(0,1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; }
+    .railnav { display: none; }
+  }
+
+  .railnav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 40px 20px 40px 32px;
+    border-right: 1px solid var(--line);
+  }
+  .railnav .brand {
+    font-family: "IBM Plex Mono";
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .railnav ol {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .railnav a {
+    display: flex; gap: 10px;
+    padding: 7px 8px;
+    border-radius: 3px;
+    text-decoration: none;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .railnav a:hover { background: var(--accent-bg); color: var(--accent-strong); }
+  .railnav .code { color: var(--muted); font-family: "IBM Plex Mono"; font-size: 12px; }
+
+  main { padding: 0 28px 100px; min-width: 0; }
+  section { max-width: 760px; margin: 0 auto; padding-top: 84px; scroll-margin-top: 24px; }
+  section.wide { max-width: 900px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono";
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 10px;
+  }
+  h2 { font-size: clamp(24px, 3vw, 30px); margin-bottom: 18px; }
+  section > p { max-width: 66ch; color: var(--ink-soft); }
+  section > p + p { margin-top: 14px; }
+
+  /* ---------- hero ---------- */
+  .hero { max-width: 900px; padding-top: 64px; }
+  .hero .kicker {
+    font-family: "IBM Plex Mono"; font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(34px, 5.4vw, 58px); line-height: 1.05; max-width: 16ch; }
+  .hero .sub { margin-top: 20px; font-size: 19px; color: var(--ink-soft); max-width: 56ch; }
+  .hero .meta {
+    margin-top: 32px; display: flex; flex-wrap: wrap; gap: 10px 28px;
+    font-family: "IBM Plex Mono"; font-size: 12.5px; color: var(--slate);
+    padding-top: 20px; border-top: 1px solid var(--line);
+  }
+  .hero .meta b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- panels / cards ---------- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .panel .tag {
+    position: absolute; top: -11px; left: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 2px 9px;
+    font-family: "IBM Plex Mono"; font-size: 10.5px; letter-spacing: .06em;
+    color: var(--accent-strong);
+    border-radius: 3px;
+  }
+
+  /* ---------- credentials table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: "IBM Plex Mono"; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); font-weight: 500; }
+  tr:last-child td { border-bottom: none; }
+  td code { background: var(--accent-bg); color: var(--accent-strong); padding: 1px 6px; border-radius: 3px; font-size: 13.5px; }
+  .table-wrap { overflow-x: auto; }
+
+  pre.cmd {
+    font-family: "IBM Plex Mono"; font-size: 13.5px; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 14px 16px; overflow-x: auto; margin: 18px 0 0;
+  }
+  pre.cmd .prompt { color: var(--muted); }
+
+  /* ---------- diagrams ---------- */
+  figure { margin: 28px 0 8px; }
+  figure svg { width: 100%; height: auto; display: block; color: var(--ink-soft); }
+  figure figcaption {
+    margin-top: 10px; font-size: 13.5px; color: var(--slate);
+    max-width: 70ch;
+  }
+  .diagram-frame {
+    border: 1px solid var(--line); border-radius: 4px; background: var(--panel);
+    padding: 18px 14px; box-shadow: var(--shadow);
+  }
+
+  /* ---------- timeline / phase list ---------- */
+  .phase-list { display: grid; gap: 14px; margin-top: 28px; }
+  .phase {
+    display: grid; grid-template-columns: 78px 1fr; gap: 18px;
+    padding: 16px 18px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel);
+  }
+  .phase .code { font-family: "IBM Plex Mono"; font-size: 13px; color: var(--accent-strong); padding-top: 2px; }
+  .phase h3 { font-size: 17px; margin-bottom: 4px; }
+  .phase p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+
+  /* ---------- training agenda ---------- */
+  .agenda { display: grid; gap: 0; margin-top: 24px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--panel); }
+  .agenda-row { display: grid; grid-template-columns: 84px 180px 1fr; gap: 18px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .agenda-row:last-child { border-bottom: none; }
+  .agenda-row .time { font-family: "IBM Plex Mono"; font-size: 13px; color: var(--slate); }
+  .agenda-row .what { font-weight: 600; font-size: 15px; }
+  .agenda-row .detail { color: var(--ink-soft); font-size: 14.5px; }
+  @media (max-width: 620px) { .agenda-row { grid-template-columns: 1fr; gap: 4px; } }
+
+  /* ---------- rule callout ---------- */
+  .rule {
+    margin-top: 26px; padding: 18px 20px; border-radius: 4px;
+    background: var(--accent-bg); border: 1px solid var(--accent);
+    display: flex; gap: 14px; align-items: baseline;
+  }
+  .rule .mark { font-family: "IBM Plex Mono"; font-size: 12px; letter-spacing: .06em; color: var(--accent-strong); text-transform: uppercase; flex: none; }
+  .rule p { margin: 0; color: var(--ink); font-size: 15px; }
+  .rule strong { color: var(--accent-strong); }
+
+  /* ---------- metric tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 24px; }
+  .tile { border: 1px solid var(--line); border-radius: 4px; background: var(--panel); padding: 16px 16px 14px; }
+  .tile .label { font-size: 12.5px; color: var(--slate); }
+  .tile .value { font-family: "IBM Plex Mono"; font-size: 26px; color: var(--ink); margin-top: 6px; }
+  .tile .value .unit { font-size: 13px; color: var(--muted); margin-left: 4px; }
+  .tile .src { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+
+  .verdict-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 20px; font-size: 12.5px; font-family: "IBM Plex Mono"; }
+  .verdict-chip.qualified { background: var(--good-bg); color: var(--good); }
+  .verdict-chip.nurture { background: var(--watch-bg); color: var(--watch); }
+  .verdict-chip.below { background: var(--line); color: var(--muted); }
+
+  /* ---------- faq ---------- */
+  details { border-bottom: 1px solid var(--line); padding: 16px 0; }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 600; font-size: 15.5px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--accent-strong); font-family: "IBM Plex Mono"; flex: none; }
+  details[open] summary::after { content: "\2212"; }
+  details p { margin: 10px 0 0; color: var(--ink-soft); font-size: 14.5px; max-width: 64ch; }
+
+  footer { max-width: 760px; margin: 90px auto 0; padding: 26px 0 0; border-top: 1px solid var(--line); }
+  footer p { color: var(--slate); font-size: 13.5px; }
+  footer a { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <nav class="railnav" aria-label="Section index">
+    <div class="brand">ai-sdr-toolkit / briefing</div>
+    <ol>
+      <li><a href="#setup"><span class="code">00</span> Set it up for real</a></li>
+      <li><a href="#gate"><span class="code">01</span> The gate mechanism</a></li>
+      <li><a href="#rollout"><span class="code">02</span> Rollout phases</a></li>
+      <li><a href="#training"><span class="code">03</span> Training session</a></li>
+      <li><a href="#workflow"><span class="code">04</span> Rep daily workflow</a></li>
+      <li><a href="#metrics"><span class="code">05</span> What to measure</a></li>
+      <li><a href="#faq"><span class="code">06</span> FAQ</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="kicker">Rollout briefing — for the person standing this up</div>
+      <h1>Give the team a queue worth working, not a chatbot to babysit.</h1>
+      <p class="sub">
+        <code>ai-sdr-toolkit</code> turns hiring surges, funding events, tech
+        adoption, and website language into a scored, prioritized account
+        queue — then only spends agent time and rep attention on the
+        accounts that clear the bar. This is the plan for putting it in
+        front of an actual SDR team.
+      </p>
+      <div class="meta">
+        <span>Audience: <b>Head of Sales / SDR manager</b></span>
+        <span>Time to first pilot: <b>~1 week</b></span>
+        <span>Repo: <b>github.com/joehillthunder/ai-sdr-toolkit</b></span>
+      </div>
+    </header>
+
+    <!-- 00 SETUP -->
+    <section id="setup">
+      <p class="eyebrow">00 — Before the team sees it</p>
+      <h2>Point it at your real ICP, not the demo data</h2>
+      <p>
+        The repo ships with a bundled offline dataset so anyone can run it
+        in five minutes. Before a rep touches it, replace that with your
+        actual targeting — copy <code>examples/icp.yaml</code>, then edit
+        the industries, headcount range, and the job-title / tech / homepage
+        keywords that actually correlate with a good-fit account for your
+        product.
+      </p>
+      <pre class="cmd"><span class="prompt">$</span> cp examples/icp.yaml icp/production.yaml
+<span class="prompt">$</span> sdr-toolkit prospect --icp icp/production.yaml --live --export out/queue.csv</pre>
+
+      <div class="table-wrap">
+        <table style="margin-top:28px">
+          <thead><tr><th>Credential</th><th>Unlocks</th><th>Required?</th></tr></thead>
+          <tbody>
+            <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Real dossiers &amp; sequences via <code>--live</code></td><td>Yes, before rollout</td></tr>
+            <tr><td><code>HUBSPOT_ACCESS_TOKEN</code></td><td>Auto-push qualified accounts into HubSpot</td><td>Optional</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Run it yourself, end to end, before Phase 01. If the top of the
+      queue doesn't pass your own gut check, tune the ICP file now — it's
+      a text edit, not a code change.</p>
+    </section>
+
+    <!-- 01 THE GATE -->
+    <section id="gate" class="wide">
+      <p class="eyebrow">01 — The mechanism worth explaining first</p>
+      <h2>Score gates spend. That's the whole idea.</h2>
+      <p>
+        Every account gets scored — that part is deterministic and free.
+        Only accounts that clear <code>nurture_threshold</code> get a
+        research + qualification call; only accounts the qualification
+        agent verdicts <span class="verdict-chip qualified">qualified</span>
+        get a personalized, signal-referencing sequence drafted. This is
+        the actual mechanism behind "more output per rep" — attention and
+        LLM spend go where they're likely to pay off, not evenly across
+        every company you can find.
+      </p>
+
+      <figure>
+        <div class="diagram-frame">
+          <svg viewBox="0 0 940 300" role="img" aria-label="Signals feed a deterministic score; a nurture-threshold gate decides whether Research and Qualification agents run at all; below-threshold accounts are logged with zero LLM calls.">
+            <defs>
+              <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+              </marker>
+              <marker id="a1m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="currentColor" opacity="0.55"/>
+              </marker>
+            </defs>
+
+            <!-- signal sources -->
+            <g font-family="IBM Plex Mono" font-size="11">
+              <rect x="16" y="14" width="150" height="34" rx="3" fill="none" stroke="currentColor" opacity="0.8"/>
+              <text x="91" y="35" text-anchor="middle">Hiring surge</text>
+              <rect x="16" y="56" width="150" height="34" rx="3" fill="none" stroke="currentColor" opacity="0.8"/>
+              <text x="91" y="77" text-anchor="middle">Funding</text>
+              <rect x="16" y="98" width="150" height="34" rx="3" fill="none" stroke="currentColor" opacity="0.8"/>
+              <text x="91" y="119" text-anchor="middle">Tech adoption</text>
+              <rect x="16" y="140" width="150" height="34" rx="3" fill="none" stroke="currentColor" opacity="0.8"/>
+              <text x="91" y="161" text-anchor="middle">Website change</text>
+            </g>
+
+            <!-- merge -->
+            <g stroke="currentColor" fill="none" opacity="0.8">
+              <line x1="166" y1="31" x2="190" y2="31"/>
+              <line x1="166" y1="73" x2="190" y2="73"/>
+              <line x1="166" y1="115" x2="190" y2="115"/>
+              <line x1="166" y1="157" x2="190" y2="157"/>
+              <line x1="190" y1="31" x2="190" y2="157"/>
+              <line x1="190" y1="94" x2="222" y2="94" marker-end="url(#a1)"/>
+            </g>
+
+            <!-- score box -->
+            <rect x="224" y="64" width="150" height="60" rx="3" fill="var(--accent-bg)" stroke="var(--accent)"/>
+            <text x="299" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="12.5" fill="var(--accent-strong)">combined_score</text>
+            <text x="299" y="107" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="currentColor" opacity="0.75">icp_fit·w + signal·w</text>
+
+            <line x1="374" y1="94" x2="392" y2="94" stroke="currentColor" marker-end="url(#a1)"/>
+
+            <!-- gate diamond -->
+            <polygon points="452,48 510,94 452,140 394,94" fill="var(--panel)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="452" y="90" text-anchor="middle" font-size="10.5">&#8805; nurture</text>
+            <text x="452" y="102" text-anchor="middle" font-size="10.5">threshold?</text>
+
+            <!-- yes branch -->
+            <line x1="510" y1="94" x2="546" y2="94" stroke="currentColor" marker-end="url(#a1)"/>
+            <text x="528" y="82" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--accent-strong)">yes</text>
+
+            <rect x="548" y="30" width="210" height="130" rx="3" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4"/>
+            <text x="653" y="20" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" letter-spacing="0.06em" fill="var(--accent-strong)">AGENTS — LLM CALLS</text>
+            <text x="653" y="55" text-anchor="middle" font-size="12">Research &#8594; dossier</text>
+            <line x1="653" y1="64" x2="653" y2="76" stroke="currentColor" opacity="0.6" marker-end="url(#a1m)"/>
+            <text x="653" y="95" text-anchor="middle" font-size="12">Qualify &#8594; verdict</text>
+            <line x1="653" y1="104" x2="653" y2="116" stroke="currentColor" opacity="0.6" marker-end="url(#a1m)"/>
+            <text x="653" y="135" text-anchor="middle" font-size="12">Personalize &#8594; sequence*</text>
+
+            <line x1="758" y1="94" x2="798" y2="94" stroke="currentColor" marker-end="url(#a1)"/>
+
+            <rect x="800" y="60" width="124" height="68" rx="3" fill="var(--good-bg)" stroke="var(--good)"/>
+            <text x="862" y="90" text-anchor="middle" font-weight="600" font-size="13" fill="var(--good)">Rep-ready</text>
+            <text x="862" y="106" text-anchor="middle" font-weight="600" font-size="13" fill="var(--good)">queue</text>
+
+            <!-- no branch -->
+            <line x1="452" y1="140" x2="452" y2="192" stroke="currentColor" stroke-dasharray="3 4" opacity="0.55" marker-end="url(#a1m)"/>
+            <text x="466" y="170" font-family="IBM Plex Mono" font-size="10" opacity="0.7">no</text>
+            <rect x="352" y="196" width="200" height="52" rx="3" fill="none" stroke="currentColor" stroke-dasharray="3 4" opacity="0.55"/>
+            <text x="452" y="217" text-anchor="middle" font-size="11.5" opacity="0.75">below_threshold —</text>
+            <text x="452" y="233" text-anchor="middle" font-size="11.5" opacity="0.75">zero LLM calls</text>
+            <text x="452" y="268" text-anchor="middle" font-size="10.5" opacity="0.6" font-style="italic">(still written to the CSV queue)</text>
+          </svg>
+        </div>
+        <figcaption>
+          *Personalize only runs if the qualification agent's verdict is
+          <span class="verdict-chip qualified" style="margin:0 2px">qualified</span> —
+          a <span class="verdict-chip nurture" style="margin:0 2px">nurture</span>
+          account gets a dossier but no drafted sequence.
+        </figcaption>
+      </figure>
+
+      <div class="rule">
+        <span class="mark">Teach this first</span>
+        <p>Every dollar of model spend and every minute of rep attention in
+        this system is already means-tested by the score before a rep ever
+        sees it. That's the pitch for the team: the queue is pre-filtered,
+        not pre-written.</p>
+      </div>
+    </section>
+
+    <!-- 02 ROLLOUT -->
+    <section id="rollout" class="wide">
+      <p class="eyebrow">02 — Sequence the rollout, don't big-bang it</p>
+      <h2>One rep, then the team, then a standing tuning cadence</h2>
+      <p>A pilot catches a badly-tuned ICP before it wastes the whole
+      team's week. Don't skip it.</p>
+
+      <figure>
+        <div class="diagram-frame">
+          <svg viewBox="0 0 940 220" role="img" aria-label="Timeline: Phase 00 validate ICP before week one, Phase 01 one-rep pilot in week one, Phase 02 full team rollout and training across weeks two and three, Phase 03 ongoing weekly scale and tune from week four onward.">
+            <defs>
+              <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+              </marker>
+              <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="7" stroke="var(--accent)" stroke-width="2" opacity="0.4"/>
+              </pattern>
+            </defs>
+
+            <line x1="30" y1="155" x2="915" y2="155" stroke="currentColor" opacity="0.5" marker-end="url(#a2)"/>
+
+            <!-- phase 0 -->
+            <text x="40" y="72" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">PH.00</text>
+            <text x="40" y="90" font-size="13" font-weight="600">Validate</text>
+            <rect x="40" y="112" width="80" height="38" rx="2" fill="none" stroke="var(--slate)" stroke-dasharray="3 4"/>
+            <text x="80" y="135" text-anchor="middle" font-size="10">ICP + creds</text>
+
+            <!-- phase 1 -->
+            <text x="150" y="72" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-strong)">PH.01</text>
+            <text x="150" y="90" font-size="13" font-weight="600">Pilot</text>
+            <rect x="150" y="112" width="150" height="38" rx="2" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4"/>
+            <text x="225" y="135" text-anchor="middle" font-size="10.5">1 rep, daily runs</text>
+
+            <!-- phase 2 -->
+            <text x="330" y="72" font-family="IBM Plex Mono" font-size="10.5" fill="var(--accent-strong)">PH.02</text>
+            <text x="330" y="90" font-size="13" font-weight="600">Team rollout + training</text>
+            <rect x="330" y="112" width="300" height="38" rx="2" fill="var(--accent)" stroke="var(--accent)"/>
+            <text x="480" y="135" text-anchor="middle" font-size="10.5" fill="#fff">whole team, 60-min session</text>
+
+            <!-- phase 3 -->
+            <text x="660" y="72" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">PH.03</text>
+            <text x="660" y="90" font-size="13" font-weight="600">Scale &amp; tune</text>
+            <rect x="660" y="112" width="255" height="38" rx="2" fill="url(#hatch)" stroke="var(--accent)" stroke-width="1.2"/>
+            <text x="787" y="135" text-anchor="middle" font-size="10.5">weekly ICP tuning, ongoing</text>
+
+            <!-- week labels -->
+            <g font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">
+              <text x="40" y="185">Day 0</text>
+              <text x="150" y="185">Week 1</text>
+              <text x="330" y="185">Week 2</text>
+              <text x="660" y="185">Week 4</text>
+              <text x="880" y="185">Week 4+</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>Phase widths are proportional to duration — Phase 02 is the two-week team-training window; Phase 03 has no fixed end, it's the standing weekly cadence in §05.</figcaption>
+      </figure>
+
+      <div class="phase-list">
+        <div class="phase">
+          <div class="code">PH.01</div>
+          <div><h3>Pilot — one rep, one week</h3>
+          <p>Your most technically curious SDR runs the pipeline daily and
+          works the queue top-down instead of their usual list-building.
+          Compare against their own recent baseline: accounts
+          researched/day, sequences sent/day, reply rate.</p></div>
+        </div>
+        <div class="phase">
+          <div class="code">PH.02</div>
+          <div><h3>Team rollout — weeks two and three</h3>
+          <p>Run the training session in §03. Every rep gets the pipeline,
+          the production ICP file, and clear expectations on what to trust
+          versus what to personalize (§04).</p></div>
+        </div>
+        <div class="phase">
+          <div class="code">PH.03</div>
+          <div><h3>Scale &amp; tune — week four onward</h3>
+          <p>Weekly review of funnel metrics per rep (§05). The ICP file
+          keeps changing as you learn what actually books meetings — this
+          phase never really ends.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 TRAINING -->
+    <section id="training">
+      <p class="eyebrow">03 — Training session</p>
+      <h2>One session, sixty minutes, before Phase 02</h2>
+      <p>Run this once for the whole team, live, with the pipeline on
+      screen — not as a deck they read alone.</p>
+
+      <div class="agenda">
+        <div class="agenda-row">
+          <div class="time">10 min</div>
+          <div class="what">Why</div>
+          <div class="detail">Rep time is the scarce resource. Frame §01's
+          gate mechanism: this system spends attention only where the score
+          says it's worth it.</div>
+        </div>
+        <div class="agenda-row">
+          <div class="time">15 min</div>
+          <div class="what">Live walkthrough</div>
+          <div class="detail">Run <code>sdr-toolkit demo</code> on screen.
+          Show a <em>rejected</em> account too, not just the winners —
+          that's the point.</div>
+        </div>
+        <div class="agenda-row">
+          <div class="time">15 min</div>
+          <div class="what">Hands-on</div>
+          <div class="detail">Each rep runs <code>sdr-toolkit prospect
+          --icp icp/production.yaml --live --limit 10</code> against their
+          own assigned segment.</div>
+        </div>
+        <div class="agenda-row">
+          <div class="time">10 min</div>
+          <div class="what">Reading the queue</div>
+          <div class="detail"><code>icp_fit</code> vs.
+          <code>signal_score</code> vs. <code>combined_score</code>, and
+          what qualified / nurture / below_threshold actually mean.</div>
+        </div>
+        <div class="agenda-row">
+          <div class="time">10 min</div>
+          <div class="what">Feedback loop</div>
+          <div class="detail">How to flag a bad signal match so the ICP
+          file improves every week instead of staying static (§05).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 WORKFLOW -->
+    <section id="workflow" class="wide">
+      <p class="eyebrow">04 — What a rep's day looks like</p>
+      <h2>Daily loop, with a weekly loop wrapped around it</h2>
+      <p>The pipeline drafts; the rep decides. That line doesn't move,
+      no matter how good the model gets.</p>
+
+      <figure>
+        <div class="diagram-frame">
+          <svg viewBox="0 0 980 340" role="img" aria-label="Daily loop: run pipeline, work the queue top down, personalize and send for qualified accounts (a dashed shortcut skips personalize for accounts that aren't qualified), log the outcome, send weekly feedback, and a return arc shows the manager tuning icp.yaml so the next morning's run reflects it.">
+            <defs>
+              <marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="currentColor"/>
+              </marker>
+              <marker id="a3d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="currentColor" opacity="0.6"/>
+              </marker>
+            </defs>
+
+            <!-- return arc (weekly) -->
+            <path d="M 815 110 C 815 25 95 25 95 110" fill="none" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#a3)"/>
+            <text x="455" y="20" text-anchor="middle" font-size="11" fill="var(--accent-strong)">manager tunes icp.yaml &#8594; next morning's queue reflects it</text>
+
+            <!-- shortcut (dashed) -->
+            <path d="M 275 170 C 275 250 635 250 635 170" fill="none" stroke="currentColor" stroke-dasharray="3 4" opacity="0.55" marker-end="url(#a3d)"/>
+            <text x="455" y="262" text-anchor="middle" font-size="10.5" opacity="0.65">not qualified &#8594; skip personalize / send</text>
+
+            <!-- boxes -->
+            <g font-size="12.5">
+              <rect x="20" y="110" width="150" height="60" rx="6" fill="var(--panel)" stroke="currentColor" opacity="0.85"/>
+              <text x="95" y="136" text-anchor="middle" font-weight="600">Run pipeline</text>
+              <text x="95" y="153" text-anchor="middle" font-size="10.5" opacity="0.7">daily, or pull shared CSV</text>
+
+              <rect x="200" y="110" width="150" height="60" rx="6" fill="var(--panel)" stroke="currentColor" opacity="0.85"/>
+              <text x="275" y="136" text-anchor="middle" font-weight="600">Work queue</text>
+              <text x="275" y="153" text-anchor="middle" font-size="10.5" opacity="0.7">top-down, by score</text>
+
+              <rect x="380" y="110" width="150" height="60" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.6"/>
+              <text x="455" y="136" text-anchor="middle" font-weight="600" fill="var(--accent-strong)">Personalize</text>
+              <text x="455" y="153" text-anchor="middle" font-size="10.5" fill="var(--accent-strong)">read + tweak, ~60 sec</text>
+
+              <rect x="560" y="110" width="150" height="60" rx="6" fill="var(--panel)" stroke="currentColor" opacity="0.85"/>
+              <text x="635" y="136" text-anchor="middle" font-weight="600">Send &amp; log</text>
+              <text x="635" y="153" text-anchor="middle" font-size="10.5" opacity="0.7">reply / meeting / bounce</text>
+
+              <rect x="740" y="110" width="150" height="60" rx="6" fill="var(--panel)" stroke="currentColor" opacity="0.85"/>
+              <text x="815" y="136" text-anchor="middle" font-weight="600">Weekly feedback</text>
+              <text x="815" y="153" text-anchor="middle" font-size="10.5" opacity="0.7">flag signal mismatches</text>
+            </g>
+
+            <!-- connectors -->
+            <g stroke="currentColor" opacity="0.85">
+              <line x1="170" y1="140" x2="196" y2="140" marker-end="url(#a3)"/>
+              <line x1="350" y1="140" x2="376" y2="140" marker-end="url(#a3)"/>
+              <line x1="530" y1="140" x2="556" y2="140" marker-end="url(#a3)"/>
+              <line x1="710" y1="140" x2="736" y2="140" marker-end="url(#a3)"/>
+            </g>
+            <g font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">
+              <text x="183" y="128" text-anchor="middle">always</text>
+              <text x="363" y="128" text-anchor="middle">if qualified</text>
+              <text x="543" y="128" text-anchor="middle">every touch</text>
+              <text x="723" y="128" text-anchor="middle">each week</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>The inner loop runs every day per rep; the outer arc
+        is the manager's weekly ICP-tuning pass described in §02 Phase 03.</figcaption>
+      </figure>
+
+      <div class="rule">
+        <span class="mark">Non-negotiable</span>
+        <p><strong>AI output is a draft, not a send button.</strong> The
+        qualification verdict is driven by the deterministic score, but the
+        dossier and sequence copy come from a model — treat them like a
+        first draft from a very fast, very literal junior AE. A rep who
+        sends a drafted sequence unread is doing it wrong.</p>
+      </div>
+    </section>
+
+    <!-- 05 METRICS -->
+    <section id="metrics">
+      <p class="eyebrow">05 — What to actually measure</p>
+      <h2>Track these weekly, per rep and in aggregate</h2>
+      <p>The CLI prints a funnel every run. These are the numbers worth
+      pulling into a standing scorecard — fill them in from your own runs
+      and CRM data, not from this page.</p>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="label">Signals collected</div>
+          <div class="value">— <span class="unit">/ week</span></div>
+          <div class="src">from the CLI funnel output</div>
+        </div>
+        <div class="tile">
+          <div class="label">Qualification rate</div>
+          <div class="value">— <span class="unit">%</span></div>
+          <div class="src">qualified &#247; accounts considered</div>
+        </div>
+        <div class="tile">
+          <div class="label">Sequences drafted</div>
+          <div class="value">— <span class="unit">/ week</span></div>
+          <div class="src">proxy for research + drafting time saved</div>
+        </div>
+        <div class="tile">
+          <div class="label">Reply rate, AI-assisted</div>
+          <div class="value">— <span class="unit">%</span></div>
+          <div class="src">vs. rep's own pre-pipeline baseline</div>
+        </div>
+        <div class="tile">
+          <div class="label">Meetings booked</div>
+          <div class="value">— <span class="unit">/ week</span></div>
+          <div class="src">the number that actually matters</div>
+        </div>
+      </div>
+
+      <p style="margin-top:24px">When qualified accounts aren't converting,
+      or good accounts show up as
+      <span class="verdict-chip nurture">nurture</span> or
+      <span class="verdict-chip below">below_threshold</span>, that's a §00
+      ICP-tuning problem — adjust <code>signal_type_weights</code> and
+      <code>qualification_threshold</code> and re-run. It isn't a reason to
+      abandon the system.</p>
+    </section>
+
+    <!-- 06 FAQ -->
+    <section id="faq">
+      <p class="eyebrow">06 — FAQ</p>
+      <h2>Questions that come up in week one</h2>
+
+      <details open>
+        <summary>The dossier said something wrong about a company.</summary>
+        <p>Expected occasionally — it's a model summarizing incomplete
+        signal data, not a verified research report. That's exactly why
+        personalization is a human step, not an autosend.</p>
+      </details>
+      <details>
+        <summary>A great-fit account showed up as below_threshold.</summary>
+        <p>Check whether <code>signal_keywords</code> actually cover how
+        that account's job posts or homepage copy is worded, and add the
+        missing terms to <code>icp/production.yaml</code>.</p>
+      </details>
+      <details>
+        <summary>Do we need --live every day?</summary>
+        <p>Offline mode costs nothing and scores identically — fine for
+        testing ICP changes. Use <code>--live</code> for the sequences reps
+        will actually send; offline dossiers/sequences are template
+        placeholders, not real copy.</p>
+      </details>
+      <details>
+        <summary>Can reps use their own ICP tweaks?</summary>
+        <p>Keep one production ICP file the manager owns; let reps propose
+        changes rather than everyone forking their own — otherwise the
+        queue stops being comparable rep-to-rep.</p>
+      </details>
+    </section>
+
+    <footer>
+      <p>Part of <a href="https://github.com/joehillthunder/ai-sdr-toolkit">github.com/joehillthunder/ai-sdr-toolkit</a> —
+      see <a href="https://github.com/joehillthunder/ai-sdr-toolkit/blob/main/docs/ONBOARDING.md">docs/ONBOARDING.md</a>
+      for this same playbook in plain Markdown, and the
+      <a href="https://github.com/joehillthunder/ai-sdr-toolkit#readme">README</a>
+      for the pipeline itself. MIT licensed.</p>
+    </footer>
+  </main>
+</div>
+
+</body>
+</html>

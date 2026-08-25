@@ -1,7 +1,7 @@
 # Rolling this out to an SDR team
 
 A playbook for a Head of Sales / SDR manager standing up `ai-sdr-toolkit`
-(now branded **AI SDR Toolkit**) as the team's daily prospecting motion —
+(now branded **AI SDR/BDR Toolkit**) as the team's daily prospecting motion —
 not just running the demo once.
 
 This playbook is for the quota-driven SDR queue. If your team runs

@@ -125,7 +125,7 @@ def run_pipeline(icp_path: str | None, limit: int | None, live: bool, export: st
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="sdr-toolkit", description="AI SDR Toolkit -- SDR prospecting + BD partnership discovery")
+    parser = argparse.ArgumentParser(prog="sdr-toolkit", description="AI SDR/BDR Toolkit -- SDR prospecting + BDR partnership discovery")
     sub = parser.add_subparsers(dest="command", required=True)
 
     demo_p = sub.add_parser("demo", help="Run the full pipeline on bundled sample data (zero config).")

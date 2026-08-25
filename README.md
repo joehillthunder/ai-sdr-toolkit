@@ -1,4 +1,4 @@
-# AI SDR Toolkit
+# AI SDR/BDR Toolkit
 
 An AI-native SDR & BD toolkit with two distinct modes: a signal-based
 prospecting pipeline for quota-driven SDRs, and a long-cycle **business

@@ -1,0 +1,55 @@
+# Example ICP definition for an AI/voice-agent platform selling into
+# technical buyers at gaming, consumer AI, and dev-tools companies.
+# Copy this file and edit it per segment/persona — nothing in the code
+# needs to change.
+
+name: "AI / Voice / Gaming ICP"
+
+target_industries:
+  - ai
+  - gaming
+  - developer tools
+
+min_employees: 30
+max_employees: 1500
+
+description_keywords:
+  - ai
+  - generative
+  - agents
+  - voice
+  - llm
+  - npc
+
+signal_keywords:
+  hiring_surge:
+    - ml engineer
+    - ai engineer
+    - applied scientist
+    - conversational ai
+    - npc
+    - generative ai
+  tech_adoption:
+    - llm
+    - rag
+    - vector database
+    - inference
+    - fine-tune
+  website_change:
+    - ai-powered
+    - generative ai
+    - voice agent
+    - copilot
+    - npc
+
+signal_type_weights:
+  hiring_surge: 1.0
+  funding: 0.8
+  tech_adoption: 0.75
+  website_change: 0.6
+
+icp_weight: 0.45
+signal_weight: 0.55
+
+qualification_threshold: 0.55
+nurture_threshold: 0.35

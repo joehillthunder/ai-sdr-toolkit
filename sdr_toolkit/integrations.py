@@ -1,11 +1,12 @@
 """Activation: pushing prioritized, drafted work out to where reps live.
 
 `CsvExportAdapter` always works offline. `HubSpotAdapter`, `SalesforceAdapter`,
-and `ZohoAdapter` are real integrations that activate once their credentials
-are set — each upserts the company, notes the qualification rationale, and
-only touches accounts the qualification agent verdicts "qualified", so a
-rep's CRM view is the pipeline's filtered output, not a spreadsheet someone
-has to re-key. No CRM yet? See `sdr_toolkit.simple_crm.SimpleCRMAdapter`.
+`ZohoAdapter`, and `MondayAdapter` are real integrations that activate once
+their credentials are set — each upserts the company, notes the qualification
+rationale, and only touches accounts the qualification agent verdicts
+"qualified", so a rep's CRM/board view is the pipeline's filtered output, not
+a spreadsheet someone has to re-key. No CRM yet? See
+`sdr_toolkit.simple_crm.SimpleCRMAdapter`.
 """
 
 from __future__ import annotations
@@ -211,5 +212,69 @@ class ZohoAdapter(ActivationAdapter):
             f"{self.api_domain}/crm/v2/Accounts",
             headers=self._headers(),
             json=payload,
+            timeout=10,
+        )
+
+
+class MondayAdapter(ActivationAdapter):
+    """Creates one item per qualified account on a monday.com board via
+    its GraphQL API, with the dossier summary and qualification rationale
+    posted as an update (comment) on that item.
+
+    Deliberately doesn't try to set custom column values -- monday boards
+    have arbitrary, per-board column schemas with no generic way to
+    discover them, so an item + a plain-text update is the integration
+    that works on any board without per-customer configuration.
+
+    Requires `MONDAY_API_TOKEN` (Admin -> API in your monday account) and
+    `MONDAY_BOARD_ID` (the numeric id in that board's URL).
+    """
+
+    API_URL = "https://api.monday.com/v2"
+
+    def __init__(self, api_token: str | None = None, board_id: str | None = None):
+        self.api_token = api_token or os.environ.get("MONDAY_API_TOKEN")
+        self.board_id = board_id or os.environ.get("MONDAY_BOARD_ID")
+        if not self.api_token or not self.board_id:
+            raise RuntimeError("MONDAY_API_TOKEN and MONDAY_BOARD_ID must both be set.")
+        if requests is None:  # pragma: no cover
+            raise RuntimeError("The 'requests' package is required for MondayAdapter.")
+
+    def _headers(self) -> dict:
+        return {"Authorization": self.api_token, "Content-Type": "application/json"}
+
+    def activate(self, packages: list[ProspectPackage]) -> None:
+        for pkg in packages:
+            if not pkg.qualification or pkg.qualification.verdict != "qualified":
+                continue
+            self._create_item(pkg)
+
+    def _create_item(self, pkg: ProspectPackage) -> None:
+        sa = pkg.scored_account
+        create_item = (
+            "mutation ($boardId: ID!, $itemName: String!) { "
+            "create_item (board_id: $boardId, item_name: $itemName) { id } }"
+        )
+        resp = requests.post(
+            self.API_URL,
+            headers=self._headers(),
+            json={"query": create_item, "variables": {"boardId": self.board_id, "itemName": sa.company.name}},
+            timeout=10,
+        )
+        try:
+            item_id = resp.json()["data"]["create_item"]["id"]
+        except Exception:  # noqa: BLE001 -- a malformed response shouldn't crash the whole export
+            return
+
+        summary = pkg.dossier.summary if pkg.dossier else sa.company.description
+        rationale = pkg.qualification.rationale if pkg.qualification else ""
+        body = f"Score: {sa.combined_score} | {summary} | {rationale}"
+        create_update = (
+            "mutation ($itemId: ID!, $body: String!) { create_update (item_id: $itemId, body: $body) { id } }"
+        )
+        requests.post(
+            self.API_URL,
+            headers=self._headers(),
+            json={"query": create_update, "variables": {"itemId": item_id, "body": body}},
             timeout=10,
         )

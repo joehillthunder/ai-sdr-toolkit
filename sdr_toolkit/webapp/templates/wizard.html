@@ -83,8 +83,9 @@
   .stepper { display: flex; gap: 8px; margin-bottom: 32px; }
   .stepper .step {
     flex: 1; padding: 12px 14px; border-radius: 10px; background: var(--surface);
-    border: 1px solid var(--line); opacity: .55; transition: opacity .15s;
+    border: 1px solid var(--line); opacity: .55; transition: opacity .15s; cursor: pointer;
   }
+  .stepper .step:hover { opacity: .8; }
   .stepper .step.active { opacity: 1; border-color: var(--primary); box-shadow: var(--shadow); }
   .stepper .step.done { opacity: 1; }
   .stepper .num { font-family: "IBM Plex Mono"; font-size: 11px; color: var(--primary-strong); }
@@ -144,7 +145,14 @@
     border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
     margin-bottom: 12px; overflow: hidden;
   }
-  .lead-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; }
+  .lead-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
+  .lead-head .caret, .lead-head .score, .lead-head .name { cursor: pointer; }
+  .remove-lead { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+  .remove-lead:hover { color: var(--danger); background: var(--danger-bg); }
+
+  .add-company-card { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; }
+  .add-company-card .grid3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  @media (max-width: 620px) { .add-company-card .grid3 { grid-template-columns: 1fr; } }
   .lead-head .score { font-family: "IBM Plex Mono"; font-weight: 600; font-size: 15px; width: 48px; }
   .lead-head .name { font-weight: 700; flex: 1; min-width: 0; }
   .lead-head .name small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 12px; }
@@ -207,9 +215,9 @@
   </p>
 
   <div class="stepper">
-    <div class="step active" data-step="1"><div class="num">01</div><div class="label">Connect your tools</div></div>
-    <div class="step" data-step="2"><div class="num">02</div><div class="label">Describe your business</div></div>
-    <div class="step" data-step="3"><div class="num">03</div><div class="label">Leads &amp; outreach</div></div>
+    <div class="step active" data-step="1" onclick="goStep(1)"><div class="num">01</div><div class="label">Connect your tools</div></div>
+    <div class="step" data-step="2" onclick="goStep(2)"><div class="num">02</div><div class="label">Describe your business</div></div>
+    <div class="step" data-step="3" onclick="goStep(3)"><div class="num">03</div><div class="label">Leads &amp; outreach</div></div>
   </div>
 
   <!-- STEP 1 -->
@@ -238,6 +246,7 @@
           <div class="option" data-provider="hubspot">HubSpot</div>
           <div class="option" data-provider="salesforce">Salesforce</div>
           <div class="option" data-provider="zoho">Zoho</div>
+          <div class="option" data-provider="monday">monday.com</div>
         </div>
         <div id="crm-fields"></div>
       </div>
@@ -326,7 +335,7 @@
 <script>
 const state = {
   llm: { provider: "mock", api_key: "", model: "", base_url: "" },
-  crm: { provider: "csv", access_token: "", instance_url: "", api_domain: "", db_path: "" },
+  crm: { provider: "csv", access_token: "", instance_url: "", api_domain: "", db_path: "", board_id: "" },
   icp: null,
   accountsCsvText: "",
   manualCompanies: [],   // AI-researched picks the user chose to include
@@ -335,6 +344,8 @@ const state = {
   packages: [],
   edits: {},
   extraTouches: {},      // contact_id -> [touch, ...] drafted after generation
+  usedSampleData: false,
+  enrichedEmails: 0,
 };
 
 function goStep(n) {
@@ -390,11 +401,13 @@ function renderCRMFields() {
   if (p === "hubspot") html = field("crm-token", "Private app access token", "", "password");
   if (p === "salesforce") html = field("crm-instance", "Instance URL", "https://yourorg.my.salesforce.com") + field("crm-token", "Access token", "", "password");
   if (p === "zoho") html = field("crm-domain", "API domain", "https://www.zohoapis.com") + field("crm-token", "Access token", "", "password");
+  if (p === "monday") html = field("crm-token", "API token (Admin → API in monday)", "", "password") + field("crm-board-id", "Board ID (from the board's URL)", "");
   el.innerHTML = html;
   bindInput("crm-token", v => state.crm.access_token = v);
   bindInput("crm-instance", v => state.crm.instance_url = v);
   bindInput("crm-domain", v => state.crm.api_domain = v);
   bindInput("crm-db-path", v => state.crm.db_path = v);
+  bindInput("crm-board-id", v => state.crm.board_id = v);
 }
 
 function field(id, label, placeholder, type) {
@@ -562,7 +575,9 @@ async function generateLeads() {
     state.runId = data.run_id;
     state.packages = data.packages;
     state.extraTouches = {};
-    renderLeads(data.used_sample_data, data.enriched_emails);
+    state.usedSampleData = data.used_sample_data;
+    state.enrichedEmails = data.enriched_emails;
+    renderLeads();
   } catch (e) {
     document.getElementById("leads-content").innerHTML = `<div class="card">Something went wrong: ${escapeHtml(String(e))}</div>`;
   } finally {
@@ -570,26 +585,27 @@ async function generateLeads() {
   }
 }
 
-function renderLeads(usedSample, enrichedEmails) {
+function renderLeads() {
   const qualified = state.packages.filter(p => p.verdict === "qualified").length;
   const nurture = state.packages.filter(p => p.verdict === "nurture").length;
   const drafted = state.packages.reduce((n, p) => n + Object.keys(p.sequences || {}).length, 0);
 
   let html = "";
-  if (usedSample) {
+  if (state.usedSampleData) {
     html += `<div class="sample-note">Showing the bundled sample account list — upload your own CSV, or add AI-researched companies, in step 2 to score real target accounts instead.</div>`;
   }
-  if (enrichedEmails) {
-    html += `<div class="sample-note">Hunter.io found ${enrichedEmails} missing email${enrichedEmails === 1 ? "" : "s"}.</div>`;
+  if (state.enrichedEmails) {
+    html += `<div class="sample-note">Hunter.io found ${state.enrichedEmails} missing email${state.enrichedEmails === 1 ? "" : "s"}.</div>`;
   }
-  html += `<div class="summary-bar">
+  html += `<div class="summary-bar" id="summary-bar">
     <div class="stat"><div class="n">${state.packages.length}</div><div class="l">accounts scored</div></div>
     <div class="stat"><div class="n">${qualified}</div><div class="l">qualified</div></div>
     <div class="stat"><div class="n">${nurture}</div><div class="l">nurture</div></div>
     <div class="stat"><div class="n">${drafted}</div><div class="l">sequences drafted</div></div>
   </div>`;
 
-  html += state.packages.map((p, i) => leadCard(p, i)).join("");
+  html += `<div id="lead-cards">` + state.packages.map(leadCard).join("") + `</div>`;
+  html += addCompanyFormHtml();
 
   html += `<div class="export-bar">
     <button class="btn btn-primary" onclick="exportLeads()">Export to ${escapeHtml(crmLabel())}</button>
@@ -599,11 +615,23 @@ function renderLeads(usedSample, enrichedEmails) {
   document.getElementById("leads-content").innerHTML = html;
 }
 
-function crmLabel() {
-  return {csv:"CSV", builtin:"Built-in CRM", hubspot:"HubSpot", salesforce:"Salesforce", zoho:"Zoho"}[state.crm.provider] || "CRM";
+function refreshSummaryBar() {
+  const qualified = state.packages.filter(p => p.verdict === "qualified").length;
+  const nurture = state.packages.filter(p => p.verdict === "nurture").length;
+  const drafted = state.packages.reduce((n, p) => n + Object.keys(p.sequences || {}).length, 0);
+  document.getElementById("summary-bar").innerHTML = `
+    <div class="stat"><div class="n">${state.packages.length}</div><div class="l">accounts scored</div></div>
+    <div class="stat"><div class="n">${qualified}</div><div class="l">qualified</div></div>
+    <div class="stat"><div class="n">${nurture}</div><div class="l">nurture</div></div>
+    <div class="stat"><div class="n">${drafted}</div><div class="l">sequences drafted</div></div>`;
 }
 
-function leadCard(p, i) {
+function crmLabel() {
+  return {csv:"CSV", builtin:"Built-in CRM", hubspot:"HubSpot", salesforce:"Salesforce", zoho:"Zoho", monday:"monday.com"}[state.crm.provider] || "CRM";
+}
+
+function leadCard(p) {
+  const id = p.company.id;
   const signals = (p.signals || []).map(s => `<span class="signal-tag">${escapeHtml(s.type)}: ${escapeHtml(s.evidence)}</span>`).join("");
   const dossier = p.dossier ? `<div class="dossier">
       <div><b>Summary</b> — ${escapeHtml(p.dossier.summary)}</div>
@@ -623,12 +651,13 @@ function leadCard(p, i) {
       </div>`;
   }).join("") : "";
 
-  return `<div class="lead" id="lead-${i}">
-    <div class="lead-head" onclick="document.getElementById('lead-${i}').classList.toggle('open')">
-      <span class="caret">▸</span>
-      <span class="score">${p.combined_score.toFixed(2)}</span>
-      <span class="name">${escapeHtml(p.company.name)}<small>${escapeHtml(p.company.industry || "")} · ${p.company.employee_count || "?"} employees</small></span>
+  return `<div class="lead" id="lead-${id}">
+    <div class="lead-head">
+      <span class="caret" onclick="document.getElementById('lead-${id}').classList.toggle('open')">▸</span>
+      <span class="score" onclick="document.getElementById('lead-${id}').classList.toggle('open')">${p.combined_score.toFixed(2)}</span>
+      <span class="name" onclick="document.getElementById('lead-${id}').classList.toggle('open')">${escapeHtml(p.company.name)}<small>${escapeHtml(p.company.industry || "")} · ${p.company.employee_count || "?"} employees</small></span>
       <span class="verdict ${p.verdict}">${p.verdict.replace("_"," ")}</span>
+      <button class="remove-lead" title="Remove this lead" onclick="removeLead('${id}')">×</button>
     </div>
     <div class="lead-body">
       <div class="signal-tags">${signals || '<span class="signal-tag">no signals detected</span>'}</div>
@@ -642,6 +671,16 @@ function editTouch(contactId, touchIndex, field, value) {
   state.edits[contactId] = state.edits[contactId] || {};
   state.edits[contactId][touchIndex] = state.edits[contactId][touchIndex] || {};
   state.edits[contactId][touchIndex][field] = value;
+
+  // also write through to state.packages so a full re-render (add/remove
+  // a lead) shows the edited text instead of reverting to the original draft
+  for (const pkg of state.packages) {
+    const touches = pkg.sequences && pkg.sequences[contactId];
+    if (touches && touches[touchIndex]) {
+      touches[touchIndex][field] = value;
+      break;
+    }
+  }
 }
 
 function touchHtml(contactId, t, ti) {
@@ -685,10 +724,90 @@ async function draftChannelTouch(contactId, channel, btnEl) {
     document.getElementById(`touches-${contactId}`).insertAdjacentHTML(
       "beforeend", touchHtml(contactId, data.touch, data.touch_index)
     );
+    // keep state.packages in sync so a later full re-render (add/remove a
+    // lead) doesn't drop this touch
+    for (const pkg of state.packages) {
+      if (pkg.sequences && contactId in pkg.sequences) {
+        pkg.sequences[contactId].push(data.touch);
+        break;
+      }
+    }
     btnEl.remove(); // one draft per channel per contact
   } catch (e) {
     alert("Couldn't draft that touch: " + String(e));
     btnEl.disabled = false; btnEl.textContent = original;
+  }
+}
+
+// ---------- add / remove leads ----------
+async function removeLead(companyId) {
+  if (state.runId) {
+    try {
+      await fetch("/api/remove-lead", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ run_id: state.runId, company_id: companyId }),
+      });
+    } catch (e) { /* still remove locally even if the server call fails */ }
+  }
+  state.packages = state.packages.filter(p => p.company.id !== companyId);
+  const el = document.getElementById(`lead-${companyId}`);
+  if (el) el.remove();
+  refreshSummaryBar();
+}
+
+function addCompanyFormHtml() {
+  return `<div class="add-company-card">
+    <div style="font-weight:700;font-size:14.5px;margin-bottom:10px">+ Add a company</div>
+    <p class="hint" style="margin:0 0 10px">
+      Outside the industries above, or one you already know about — it's scored and, if it
+      qualifies, gets a dossier and drafted sequence just like the rest of the list.
+    </p>
+    <div class="grid3">
+      <input id="add-co-name" placeholder="Company name">
+      <input id="add-co-domain" placeholder="Domain (optional)">
+      <input id="add-co-industry" placeholder="Industry (optional)">
+    </div>
+    <button class="btn btn-secondary" id="add-co-btn" onclick="submitAddCompany()">Add &amp; score</button>
+    <span id="add-co-status" style="margin-left:10px; font-size:13px; color:var(--ink-soft)"></span>
+  </div>`;
+}
+
+async function submitAddCompany() {
+  if (!state.runId) { alert("Generate a lead list first."); return; }
+  const name = document.getElementById("add-co-name").value.trim();
+  if (!name) { document.getElementById("add-co-status").textContent = "Company name is required."; return; }
+
+  const btn = document.getElementById("add-co-btn");
+  const statusEl = document.getElementById("add-co-status");
+  btn.disabled = true; statusEl.textContent = "Scoring…";
+
+  try {
+    const res = await fetch("/api/add-company", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        run_id: state.runId, icp: state.icp, llm: state.llm,
+        company: {
+          name,
+          domain: document.getElementById("add-co-domain").value.trim(),
+          industry: document.getElementById("add-co-industry").value.trim(),
+        },
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { statusEl.textContent = data.error; return; }
+
+    state.packages.push(data.package);
+    state.packages.sort((a, b) => b.combined_score - a.combined_score);
+    document.getElementById("lead-cards").innerHTML = state.packages.map(leadCard).join("");
+    refreshSummaryBar();
+    statusEl.textContent = "";
+    document.getElementById("add-co-name").value = "";
+    document.getElementById("add-co-domain").value = "";
+    document.getElementById("add-co-industry").value = "";
+  } catch (e) {
+    statusEl.textContent = "Couldn't add that company: " + String(e);
+  } finally {
+    btn.disabled = false;
   }
 }
 

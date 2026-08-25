@@ -50,7 +50,7 @@ genuinely different workflow, not the same pipeline with different labels.
    signal-referencing outreach sequence (`sdr_toolkit/agents.py`), on
    **Claude, OpenAI, or any open-source/local model** (`sdr_toolkit/llm.py`).
 4. **Activates the output** — exports a prioritized, rep-ready queue to
-   CSV, pushes qualified accounts into HubSpot/Salesforce/Zoho, or logs
+   CSV, pushes qualified accounts into HubSpot/Salesforce/Zoho/monday.com, or logs
    everything to a built-in local CRM if you don't have a real one yet
    (`sdr_toolkit/integrations.py`, `sdr_toolkit/simple_crm.py`).
 5. **Reports throughput** — a funnel + an "output per rep" estimate
@@ -251,6 +251,7 @@ filtered queue, not a firehose:
 | HubSpot | `HubSpotAdapter` | `HUBSPOT_ACCESS_TOKEN` |
 | Salesforce | `SalesforceAdapter` | `SALESFORCE_INSTANCE_URL`, `SALESFORCE_ACCESS_TOKEN` |
 | Zoho | `ZohoAdapter` | `ZOHO_ACCESS_TOKEN`, `ZOHO_API_DOMAIN` |
+| monday.com | `MondayAdapter` | `MONDAY_API_TOKEN`, `MONDAY_BOARD_ID` |
 
 `SimpleCRMAdapter` is the "I track leads in a spreadsheet, not a real
 CRM" option — a proper local SQLite database (accounts, contacts, and

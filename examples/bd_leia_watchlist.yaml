@@ -1,0 +1,30 @@
+# Partner-intelligence watchlist: Leia / Immersity (https://immersity.ai)
+# targeting device-maker OEMs in IT/mobile for spatial-display partnerships.
+#
+# Product being sold: Spatial AI software + switchable-display hardware
+# that adds glasses-free holographic depth to existing device form
+# factors (phones, tablets, monitors, laptops) -- sold to OEMs as a
+# product-differentiation play, with an SDK for developers.
+#
+# Replace REPLACE_ME with each company's real newsroom/press RSS feed URL.
+
+companies:
+  Dell: "REPLACE_ME_WITH_DELL_NEWSROOM_RSS_URL"
+  HP: "REPLACE_ME_WITH_HP_NEWSROOM_RSS_URL"
+  Apple: "REPLACE_ME_WITH_APPLE_NEWSROOM_RSS_URL"
+
+topics:
+  - spatial computing
+  - 3D / holographic display
+  - glasses-free 3D
+  - display innovation
+  - product differentiation
+  - AI PCs
+  - agentic AI
+
+# Target personas for AccountResearchAgent / PartnershipHunterAgent --
+# used as --context, not a config the code reads directly.
+target_roles:
+  - Display and Product Planning
+  - Display Innovation
+  - Product Innovation

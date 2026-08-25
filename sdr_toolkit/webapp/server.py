@@ -28,7 +28,7 @@ from ..agents import PersonalizationAgent
 from ..config import ICPConfig
 from ..enrichment import HunterContactFinder
 from ..icp_builder import build_icp, fetch_url_text
-from ..integrations import CsvExportAdapter, HubSpotAdapter, SalesforceAdapter, ZohoAdapter
+from ..integrations import CsvExportAdapter, HubSpotAdapter, MondayAdapter, SalesforceAdapter, ZohoAdapter
 from ..lead_research import suggest_candidate_companies
 from ..llm import get_client
 from ..models import Company, Contact, OutreachSequence
@@ -122,13 +122,7 @@ def create_app() -> Flask:
                 companies, contacts_by_company
             )
 
-        sources = [
-            CareersPageSignalSource(icp.signal_keywords.get("hiring_surge", [])),
-            WebsiteChangeSignalSource(icp.signal_keywords.get("website_change", []), live=True),
-            FundingSignalSource(),
-            TechAdoptionSignalSource(icp.signal_keywords.get("tech_adoption", [])),
-        ]
-        pipeline = Pipeline(icp=icp, llm_client=client, signal_sources=sources)
+        pipeline = Pipeline(icp=icp, llm_client=client, signal_sources=_default_sources(icp))
         result = pipeline.run(companies, contacts_by_company)
 
         run_id = uuid.uuid4().hex[:12]
@@ -140,6 +134,71 @@ def create_app() -> Flask:
             enriched_emails=enriched_emails,
             packages=[_package_to_dict(p) for p in result.packages],
         )
+
+    @app.post("/api/add-company")
+    def api_add_company():
+        """Score and (if it qualifies) draft outreach for one more company
+        against a run already in progress -- lets a rep add a company the
+        original ICP/CSV missed (a different industry, a competitor's
+        customer, whatever) without regenerating the whole list."""
+        data = request.get_json(force=True) or {}
+        run_id = data.get("run_id")
+        result = RUNS.get(run_id)
+        if not result:
+            return jsonify(error="This lead list has expired. Generate it again."), 404
+
+        try:
+            icp = ICPConfig(**data["icp"])
+            client = _client_from_payload(data.get("llm", {}))
+        except Exception as exc:  # noqa: BLE001
+            return jsonify(error=str(exc)), 400
+
+        company_data = data.get("company") or {}
+        name = (company_data.get("name") or "").strip()
+        if not name:
+            return jsonify(error="A company name is required."), 400
+
+        existing_ids = {p.scored_account.company.id for p in result.packages}
+        company_id = _unique_id(_slugify(name, "added"), existing_ids)
+        domain = (company_data.get("domain") or "").strip() or f"{company_id}.example.com"
+        company = Company(
+            id=company_id,
+            name=name,
+            domain=domain,
+            industry=(company_data.get("industry") or "").strip(),
+            employee_count=int(company_data.get("employee_count") or 0) if str(company_data.get("employee_count") or "").isdigit() else 0,
+            headquarters=(company_data.get("headquarters") or "").strip(),
+            description=(company_data.get("description") or "").strip(),
+        )
+        contact = Contact(
+            id=f"{company_id}-c1", company_id=company_id, name="Decision Maker", title="Leadership", seniority="unknown",
+        )
+
+        pipeline = Pipeline(icp=icp, llm_client=client, signal_sources=_default_sources(icp))
+        one_off = pipeline.run([company], {company_id: [contact]})
+        new_package = one_off.packages[0]
+
+        result.packages.append(new_package)
+        result.packages.sort(key=lambda p: p.scored_account.combined_score, reverse=True)
+
+        return jsonify(package=_package_to_dict(new_package))
+
+    @app.post("/api/remove-lead")
+    def api_remove_lead():
+        """Drop one company from a run in progress -- it's excluded from
+        every subsequent export/draft-touch call for that run_id."""
+        data = request.get_json(force=True) or {}
+        run_id = data.get("run_id")
+        result = RUNS.get(run_id)
+        if not result:
+            return jsonify(error="This lead list has expired. Generate it again."), 404
+
+        company_id = data.get("company_id")
+        before = len(result.packages)
+        result.packages = [p for p in result.packages if p.scored_account.company.id != company_id]
+        if len(result.packages) == before:
+            return jsonify(error="Unknown company for this run."), 404
+        return jsonify(ok=True)
 
     @app.post("/api/draft-touch")
     def api_draft_touch():
@@ -208,6 +267,10 @@ def create_app() -> Flask:
                 ZohoAdapter(
                     access_token=crm.get("access_token"), api_domain=crm.get("api_domain")
                 ).activate(result.packages)
+            elif provider == "monday":
+                MondayAdapter(
+                    api_token=crm.get("access_token"), board_id=crm.get("board_id")
+                ).activate(result.packages)
             elif provider == "builtin":
                 SimpleCRMAdapter(crm.get("db_path") or "sdr_toolkit_crm.db").activate(result.packages)
             else:
@@ -222,6 +285,15 @@ def create_app() -> Flask:
 
 
 # ---------------------------------------------------------------- helpers
+
+def _default_sources(icp: ICPConfig) -> list:
+    return [
+        CareersPageSignalSource(icp.signal_keywords.get("hiring_surge", [])),
+        WebsiteChangeSignalSource(icp.signal_keywords.get("website_change", []), live=True),
+        FundingSignalSource(),
+        TechAdoptionSignalSource(icp.signal_keywords.get("tech_adoption", [])),
+    ]
+
 
 def _client_from_payload(payload: dict):
     return get_client(

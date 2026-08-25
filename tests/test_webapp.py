@@ -256,3 +256,73 @@ def test_draft_touch_unknown_contact_returns_404(client):
         json={"run_id": run_id, "contact_id": "no-such-contact", "channel": "x_dm", "llm": {"provider": "mock"}},
     )
     assert resp.status_code == 404
+
+
+def _generate_sample_run(client):
+    icp_resp = client.post(
+        "/api/build-icp",
+        json={"llm": {"provider": "mock"}, "company_name": "Acme", "website_urls": [], "description": "AI startups"},
+    )
+    icp = icp_resp.get_json()["icp"]
+    leads_resp = client.post("/api/generate-leads", json={"llm": {"provider": "mock"}, "icp": icp, "accounts_csv": ""})
+    return icp, leads_resp.get_json()
+
+
+def test_add_company_scores_and_appends_to_run(client):
+    icp, leads = _generate_sample_run(client)
+    run_id = leads["run_id"]
+    before = len(leads["packages"])
+
+    resp = client.post(
+        "/api/add-company",
+        json={
+            "run_id": run_id, "icp": icp, "llm": {"provider": "mock"},
+            "company": {"name": "Added Robotics Co", "domain": "addedrobotics.example", "industry": "robotics"},
+        },
+    )
+    data = resp.get_json()
+    assert resp.status_code == 200
+    assert data["package"]["company"]["name"] == "Added Robotics Co"
+
+    # confirm it actually landed in the stored run (affects export)
+    export_resp = client.post("/api/export", json={"run_id": run_id, "edits": {}, "crm": {"provider": "csv"}})
+    assert b"Added Robotics Co" in export_resp.data
+    assert len(RUNS[run_id].packages) == before + 1
+
+
+def test_add_company_requires_a_name(client):
+    icp, leads = _generate_sample_run(client)
+    resp = client.post(
+        "/api/add-company",
+        json={"run_id": leads["run_id"], "icp": icp, "llm": {"provider": "mock"}, "company": {"name": ""}},
+    )
+    assert resp.status_code == 400
+
+
+def test_add_company_unknown_run_returns_404(client):
+    resp = client.post(
+        "/api/add-company",
+        json={"run_id": "nope", "icp": {}, "llm": {"provider": "mock"}, "company": {"name": "X"}},
+    )
+    assert resp.status_code == 404
+
+
+def test_remove_lead_excludes_company_from_run(client):
+    icp, leads = _generate_sample_run(client)
+    run_id = leads["run_id"]
+    before = len(leads["packages"])
+    company_id = leads["packages"][0]["company"]["id"]
+    company_name = leads["packages"][0]["company"]["name"]
+
+    resp = client.post("/api/remove-lead", json={"run_id": run_id, "company_id": company_id})
+    assert resp.status_code == 200
+    assert len(RUNS[run_id].packages) == before - 1
+
+    export_resp = client.post("/api/export", json={"run_id": run_id, "edits": {}, "crm": {"provider": "csv"}})
+    assert company_name.encode() not in export_resp.data
+
+
+def test_remove_lead_unknown_company_returns_404(client):
+    _, leads = _generate_sample_run(client)
+    resp = client.post("/api/remove-lead", json={"run_id": leads["run_id"], "company_id": "no-such-id"})
+    assert resp.status_code == 404

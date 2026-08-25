@@ -4,7 +4,7 @@ A lot of small teams track leads in a spreadsheet, a Notion table, or a
 weekend side-project someone vibe-coded — not Salesforce. This is a
 proper, if minimal, version of that: a local SQLite file, zero setup,
 zero credentials. It implements the same `ActivationAdapter` interface as
-HubSpot/Salesforce/Zoho, so it's a drop-in choice in the CRM step of the
+HubSpot/Salesforce/Zoho/monday.com, so it's a drop-in choice in the CRM step of the
 wizard, and something a team can migrate off of later without touching
 the rest of the pipeline.
 
